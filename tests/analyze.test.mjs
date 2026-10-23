@@ -65,7 +65,7 @@ test('hashtag and fallback invariants',()=>{
   assert.equal(ai.duration,15);assert.equal(ai.title.length,59);assert.equal(ai.source,'gemini');
   assert.equal(normalizeIdea({...i,script:[...i.script.slice(1)]},t).source,'template');
 });
-test('collection: 4 popular pages, 2 searches, dedup and 50-item hydration, quota ceiling 210',async t=>{
+test('collection: 2 #shorts searches, dedup and 50-item hydration, quota ceiling 202',async t=>{
   const calls=[];
   t.mock.method(globalThis,'fetch',async url=>{
     const u=new URL(url);calls.push(u);const q=u.searchParams;
@@ -74,16 +74,15 @@ test('collection: 4 popular pages, 2 searches, dedup and 50-item hydration, quot
       const start=q.get('q')==='#shorts'?200:250;
       return makeResponse({items:Array.from({length:50},(_,i)=>({id:{videoId:id(start+i)}}))});
     }
-    if(q.get('chart')){const page=Number(q.get('pageToken')||0);return makeResponse({items:Array.from({length:50},(_,i)=>({id:id(page*50+i)})),...(page<3?{nextPageToken:String(page+1)}:{})});}
     assert.equal(q.get('part'),'snippet,statistics,contentDetails');assert.ok(q.get('id').split(',').length<=50);
     return makeResponse({items:q.get('id').split(',').map(id=>({id}))});
   });
   const result=await collectVideos({region:'US',lang:'fa',key:'test',now:NOW,signal:new AbortController().signal});
-  assert.equal(result.items.length,300);assert.equal(result.requestCount,12);assert.equal(result.estimatedQuota,210);assert.equal(calls.length,12);
+  assert.equal(result.items.length,100);assert.equal(result.requestCount,4);assert.equal(result.estimatedQuota,202);assert.equal(calls.length,4);
 });
 test('collection deduplicates across queries and stops pagination without token',async t=>{
-  t.mock.method(globalThis,'fetch',async url=>{const u=new URL(url);return makeResponse({items:u.pathname.endsWith('/search')?[{id:{videoId:id(0)}}]:u.searchParams.has('chart')?[{id:id(0)}]:[video(0)]});});
-  const r=await collectVideos({region:'US',lang:'fa',key:'x',now:NOW,signal:new AbortController().signal});assert.equal(r.candidateCount,1);assert.equal(r.requestCount,4);assert.equal(r.estimatedQuota,202);
+  t.mock.method(globalThis,'fetch',async url=>{const u=new URL(url);return makeResponse({items:u.pathname.endsWith('/search')?[{id:{videoId:id(0)}}]:[video(0)]});});
+  const r=await collectVideos({region:'US',lang:'fa',key:'x',now:NOW,signal:new AbortController().signal});assert.equal(r.candidateCount,1);assert.equal(r.requestCount,3);assert.equal(r.estimatedQuota,201);
 });
 function setEnv(t,key,value){const old=process.env[key];if(value===undefined)delete process.env[key];else process.env[key]=value;t.after(()=>{if(old===undefined)delete process.env[key];else process.env[key]=old;});}
 function youtubeMock(t,count=12,ai){

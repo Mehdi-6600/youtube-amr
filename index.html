@@ -213,7 +213,7 @@ function englishProductionIdea(idea) {
     ['Overhead shot of tangled, disconnected red, blue and yellow cables on a white desk.', 'Macro shot of a green fabric cable tie; keep all colors consistent.', 'Use three rhythmic stop-motion cuts to align and secure the cables.', 'Move the camera gently to show the tidy path of all three cables.', 'Reverse the action quickly to restore the opening tangle for a seamless loop.'],
     ['Tiny red and blue shoes behind a paper starting line on a table; no brands.', 'Macro shot of the laces tightening in stop motion; preserve the shoe designs.', 'Animate both shoes hopping toward a paper finish line.', 'Pause the red shoe just before the finish so the blue one wins; visual humor only.', 'Move both shoes out of frame and back behind the starting line to match the opening.'],
     ['An orange folded paper card with two black eyes; keep the ears hidden.', 'Close-up of the card edge with two orange paper triangles behind it.', 'Raise the triangles in stop motion to reveal an original paper fox face.', 'Add a white paper nose and wiggle the ears twice; no real animal.', 'Fold the ears and nose behind the card and match its opening position.'],
-    ['Overhead shot of a purple paper square hiding a star-shaped opening on a cream desk.', 'Macro shot of one corner with a small yellow patch underneath.', 'Open four pre-cut flaps in stop motion to reveal the yellow star underneath.', 'Rotate the yellow star gently and place it in the center of the purple paper.', 'Hide the star and close the flaps to match the opening square exactly.'],
+    ['Close-up of the subject; hide its final form.', 'Show a recognizable detail; keep the outcome unknown.', 'Make one small stop-motion change to reveal the result.', 'Final shot of the result with identical framing and lighting.', 'Return to the opening frame and position for a seamless loop.'],
     ['Close-up of an orange microphone with a black foam top against a plain curtain; hide its base.', 'Move past a yellow toy duck toward the same unbranded microphone.', 'Lift the black foam top to reveal that the microphone body is a fresh carrot.', 'Animate the toy duck taking one surprised step back with a comic pause.', 'Replace the foam top and return the camera to the exact opening frame.'],
     ['A tiny blue paper hat wiggles on a white table; hide its interior.', 'Move closer to the hat edge to reveal the tip of a yellow paper wing.', 'Lift the hat in stop motion to reveal a round yellow paper chick.', 'Animate the chick putting on the oversized hat so it covers its eyes.', 'Fold the chick under the hat and restore the opening position and movement.'],
     ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
@@ -234,11 +234,13 @@ function englishProductionIdea(idea) {
   const limitedHashtags=hashtags.slice(0,5);
   caption=ensureCaptionLength(caption, limitedHashtags, 'en');
   const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
+  const refTitle=english(idea.reference?.title,'');
+  const refLine=idea.reference&&refTitle?`Reference trend (a real viral Short; create your own ORIGINAL version, do not copy footage): "${refTitle}" ${idea.reference.url}\n`:'';
   const renderEn=s=>`LANGUAGE LOCK: English (en), American English pronunciation and spelling. All speech, text, subtitles and SRT MUST be English only. No Persian/Farsi, no bilingual subtitles, no translation to interface language. Topic is metadata only.
 
 ROLE: Direct, generate and edit one original publishable YouTube Short.
 Title: ${title} | Topic: ${english(idea.topic,'selected trend')}
-Specs: ${duration}s, Vertical 9:16, 1080×1920, 30fps, MP4 / H.264 + AAC. Single clear subject, consistent identity/colors/scale, soft studio light, clean background, steady camera; keep top 12% and bottom 18% safe.
+${refLine}Specs: ${duration}s, Vertical 9:16, 1080×1920, 30fps, MP4 / H.264 + AAC. Single clear subject, consistent identity/colors/scale, soft studio light, clean background, steady camera; keep top 12% and bottom 18% safe.
 Hook (0–2s): ${hook}
 
 SHOT LIST (seconds; visuals are NOT spoken or shown as text):
@@ -257,10 +259,11 @@ DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot l
     function prepareNonEnglishIdea(idea,trend,lang='fa') {
       const name=LANGUAGE_NAMES[lang]||LANGUAGE_NAMES.fa;
       const baseScript=Array.isArray(idea.script)?idea.script:[];
+      const refLine=idea.reference?`الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${idea.reference.title}» ${idea.reference.url}\n`:'';
       const renderLocal=s=>`نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد متنی.
 
 موضوع الهام: #${trend.topic} | عنوان: ${idea.title}
-زبان ویدیو: ${name} (${lang}). تمام گویندگی و نوشته‌های داخل ویدیو فقط به همین زبان باشند؛ فارسی بودن این دستور را زبان خروجی تلقی نکن.
+${refLine}زبان ویدیو: ${name} (${lang}). تمام گویندگی و نوشته‌های داخل ویدیو فقط به همین زبان باشند؛ فارسی بودن این دستور را زبان خروجی تلقی نکن.
 مشخصات فنی: مدت ${idea.duration} ثانیه، عمودی 9:16، رزولوشن 1080×1920، 30fps، خروجی MP4 / H.264 با صدای AAC.
 طراحی بصری: یک سوژهٔ مشخص با رنگ، ابعاد و هویت ثابت در تمام نماها، نور نرم استودیویی، پس‌زمینهٔ خلوت و حرکت کنترل‌شده؛ 12٪ بالا و 18٪ پایین کادر امن بماند.
 قلاب ۰ تا ۲ ثانیه: ${idea.hook}

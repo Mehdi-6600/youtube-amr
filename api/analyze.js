@@ -259,7 +259,7 @@ const STORIES = [
   ['نمای بالا از سه کابل قرمز، آبی و زردِ نامتصل و گره‌خورده روی میز سفید؛ هیچ برق متصل نباشد.', 'ماکروی یک بست پارچه‌ای سبز در کنار کابل‌ها؛ رنگ‌ها در همهٔ نماها ثابت بمانند.', 'با سه کات ضربی و استاپ‌موشن کابل‌ها را موازی بچین و بست سبز را دور آن‌ها ببند.', 'حرکت کوتاه دوربین، نتیجهٔ مرتب و مسیر هر سه کابل را واضح نشان بده.', 'با یک حرکت معکوس سریع، کابل‌ها به همان وضعیت اولیه برگردند؛ کات آخر به قاب اول وصل شود.'],
   ['دو کفش کوچک قرمز و آبی پشت خط شروع کاغذی روی میز؛ بدون لوگو یا ورزشکار واقعی.', 'ماکروی بندهای هر دو کفش که با استاپ‌موشن محکم می‌شوند؛ مدل و رنگ کفش ثابت بماند.', 'هر دو کفش با جهش‌های کوتاه استاپ‌موشن به سمت یک خط پایان کاغذی مسابقه بدهند.', 'کفش قرمز نزدیک پایان مکث کند و آبی از آن جلو بزند؛ فقط یک شوخی بصری، نه توصیهٔ ورزشی.', 'هر دو از انتهای کادر خارج و از جهت دیگر پشت خط شروع ظاهر شوند؛ قاب پایانی همان قاب اول.'],
   ['یک کارت کاغذی نارنجیِ تاخورده با دو چشم سیاه وسط میز؛ گوش‌ها هنوز پنهان باشند.', 'نمای نزدیک لبهٔ کارت و دو مثلث کاغذی نارنجی پشت آن؛ بدون حیوان واقعی.', 'با استاپ‌موشن مثلث‌ها بالا بیایند و کارت به چهرهٔ روباه کاغذی تبدیل شود.', 'یک بینی کاغذی سفید اضافه شود و گوش‌ها دو تکان کوتاه بامزه بخورند.', 'گوش‌ها و بینی پشت کارت جمع شوند؛ کارت دقیقاً به حالت و موقعیت قاب اول برگردد.'],
-  ['نمای بالا از یک مربع کاغذی بنفش با شکاف ستاره‌ای بسته روی میز کرم؛ قاب ثابت.', 'ماکروی یک گوشهٔ کاغذ و یک نقطهٔ زرد زیر آن؛ فقط بخشی از شکل نهایی دیده شود.', 'با استاپ‌موشن، چهار لبهٔ ازپیش‌برش‌خورده را آرام باز کن تا ستارهٔ زردِ زیر آن آشکار شود.', 'ستارهٔ زرد یک چرخش کوتاه کند و روی کاغذ بنفش در مرکز قاب بنشیند.', 'ستاره زیر کاغذ برگردد و لبه‌ها بسته شوند؛ آخرین قاب دقیقاً مربع آغاز باشد.']
+  ['نمای نزدیک سوژهٔ اصلی موضوع؛ منبع نتیجه را پنهان نگهدار.', 'جزئیات معروفِ سوژه را نشان بده؛ نتیجه را نا شناخته بگذار.', 'با استاپ‌موشن یک تغییر کوچک ایجاد کن تا نتیجه آشکار شود.', 'نمای نهایی از نتیجه؛ زاویه، نور و اندازه با قاب اول یکسان باشد.', 'به قاب و موقعیت آغاز برگرد؛ لوپ یکسان بسازد.']
 ];
 // Separate concepts for common neighbouring trends, rather than repeating one prompt.
 LOCALES.fa.titles.push('میکروفونی که هویج از آب درآمد', 'کلاه کوچکی با مهمان کاغذی', 'یک روز کوچک روی میز');
@@ -296,7 +296,7 @@ export function englishProductionIdea(idea) {
     ['Overhead shot of tangled, disconnected red, blue and yellow cables on a white desk.', 'Macro shot of a green fabric cable tie; keep all colors consistent.', 'Use three rhythmic stop-motion cuts to align and secure the cables.', 'Move the camera gently to show the tidy path of all three cables.', 'Reverse the action quickly to restore the opening tangle for a seamless loop.'],
     ['Tiny red and blue shoes behind a paper starting line on a table; no brands.', 'Macro shot of the laces tightening in stop motion; preserve the shoe designs.', 'Animate both shoes hopping toward a paper finish line.', 'Pause the red shoe just before the finish so the blue one wins; visual humor only.', 'Move both shoes out of frame and back behind the starting line to match the opening.'],
     ['An orange folded paper card with two black eyes; keep the ears hidden.', 'Close-up of the card edge with two orange paper triangles behind it.', 'Raise the triangles in stop motion to reveal an original paper fox face.', 'Add a white paper nose and wiggle the ears twice; no real animal.', 'Fold the ears and nose behind the card and match its opening position.'],
-    ['Overhead shot of a purple paper square hiding a star-shaped opening on a cream desk.', 'Macro shot of one corner with a small yellow patch underneath.', 'Open four pre-cut flaps in stop motion to reveal the yellow star underneath.', 'Rotate the yellow star gently and place it in the center of the purple paper.', 'Hide the star and close the flaps to match the opening square exactly.'],
+    ['Close-up of the subject; hide its final form.', 'Show a recognizable detail; keep the outcome unknown.', 'Make one small stop-motion change to reveal the result.', 'Final shot of the result with identical framing and lighting.', 'Return to the opening frame and position for a seamless loop.'],
     ['Close-up of an orange microphone with a black foam top against a plain curtain; hide its base.', 'Move past a yellow toy duck toward the same unbranded microphone.', 'Lift the black foam top to reveal that the microphone body is a fresh carrot.', 'Animate the toy duck taking one surprised step back with a comic pause.', 'Replace the foam top and return the camera to the exact opening frame.'],
     ['A tiny blue paper hat wiggles on a white table; hide its interior.', 'Move closer to the hat edge to reveal the tip of a yellow paper wing.', 'Lift the hat in stop motion to reveal a round yellow paper chick.', 'Animate the chick putting on the oversized hat so it covers its eyes.', 'Fold the chick under the hat and restore the opening position and movement.'],
     ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
@@ -317,11 +317,13 @@ export function englishProductionIdea(idea) {
   const limitedHashtags=hashtags.slice(0,5);
   caption=ensureCaptionLength(caption, limitedHashtags, 'en');
   const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
+  const refTitle=english(idea.reference?.title,'');
+  const refLine=idea.reference&&refTitle?`Reference trend (a real viral Short; create your own ORIGINAL version, do not copy footage): "${refTitle}" ${idea.reference.url}\n`:'';
   const renderEn=s=>`LANGUAGE LOCK: English (en), American English pronunciation and spelling. All speech, text, subtitles and SRT MUST be English only. No Persian/Farsi, no bilingual subtitles, no translation to interface language. Topic is metadata only.
 
 ROLE: Direct, generate and edit one original publishable YouTube Short.
 Title: ${title} | Topic: ${english(idea.topic,'selected trend')}
-Specs: ${duration}s, Vertical 9:16, 1080×1920, 30fps, MP4 / H.264 + AAC. Single clear subject, consistent identity/colors/scale, soft studio light, clean background, steady camera; keep top 12% and bottom 18% safe.
+${refLine}Specs: ${duration}s, Vertical 9:16, 1080×1920, 30fps, MP4 / H.264 + AAC. Single clear subject, consistent identity/colors/scale, soft studio light, clean background, steady camera; keep top 12% and bottom 18% safe.
 Hook (0–2s): ${hook}
 
 SHOT LIST (seconds; visuals are NOT spoken or shown as text):
@@ -340,10 +342,11 @@ DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot l
 function prepareNonEnglishIdea(idea, trend, lang = 'fa') {
   const name = (LOCALES[lang] || LOCALES.fa).name;
   const baseScript = Array.isArray(idea.script) ? idea.script : [];
+  const refLine = idea.reference ? `الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${idea.reference.title}» ${idea.reference.url}\n` : '';
   const renderLocal = s => `نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد متنی.
 
 موضوع الهام: #${trend.topic} | عنوان: ${idea.title}
-زبان ویدیو: ${name} (${lang}). تمام گویندگی و نوشته‌های داخل ویدیو فقط به همین زبان باشند؛ فارسی بودن این دستور را زبان خروجی تلقی نکن.
+${refLine}زبان ویدیو: ${name} (${lang}). تمام گویندگی و نوشته‌های داخل ویدیو فقط به همین زبان باشند؛ فارسی بودن این دستور را زبان خروجی تلقی نکن.
 مشخصات فنی: مدت ${idea.duration} ثانیه، عمودی 9:16، رزولوشن 1080×1920، 30fps، خروجی MP4 / H.264 با صدای AAC.
 طراحی بصری: یک سوژهٔ مشخص با رنگ، ابعاد و هویت ثابت در تمام نماها، نور نرم استودیویی، پس‌زمینهٔ خلوت و حرکت کنترل‌شده؛ 12٪ بالا و 18٪ پایین کادر امن بماند.
 قلاب ۰ تا ۲ ثانیه: ${idea.hook}
@@ -361,16 +364,24 @@ export function buildMasterPrompt(idea, trend, lang = 'fa') {
   if (lang === 'en') return englishProductionIdea({...idea,topic:trend.topic}).masterPrompt;
   return prepareNonEnglishIdea(idea, trend, lang).masterPrompt;
 }
+const defaultTitle = (t, lang) => {
+  const topic = clean(t.topic, 35);
+  return lang === 'en' ? `Original idea: ${topic}` : `ایده اورجینال درباره ${topic}`;
+};
 export function fallbackIdea(t, lang = 'fa') {
   const locale = LOCALES[lang] || LOCALES.fa, story = storyFor(t.topic);
-  const title = locale.titles[story];
+  const title = story === 6 ? defaultTitle(t, lang) : locale.titles[story];
+  const reference = (Array.isArray(t.evidence) && t.evidence[0]) ? {
+    title: clean(t.evidence[0].title, 120), url: t.evidence[0].url,
+    channel: clean(t.evidence[0].channel, 100), views: t.evidence[0].views, ageH: t.evidence[0].ageH
+  } : null;
   const hashtags = enforceHashtags([`#${t.topic}`, ...locale.tags], t.topic);
   const baseCaption = `${locale.intro}${title}.\n${locale.question} 👇`;
   const caption = ensureCaptionLength(baseCaption, hashtags, lang);
   return { topic: t.topic, lang, title, duration: 12, hook: locale.voices[0],
     script: STORIES[story].map((visual, i) => ({ t: ['0–2', '2–4', '4–7', '7–10', '10–12'][i], visual, voice: locale.voices[i], text: locale.texts[i] })),
     caption,
-    hashtags,
+    hashtags, reference,
     sound: 'گویندگی اورجینال + افکت‌های کوتاه کلیک/کاغذ/حرکت ساختهٔ خودت، بدون موزیک دارای کپی‌رایت.', why: why(t), source: 'template' };
 }
 // Reject obviously wrong-language AI captions; a safe localized storyboard is preferable.
@@ -423,22 +434,14 @@ async function youtube(path, params, key, signal) {
 export async function collectVideos({ region, lang, key, signal, now }) {
   let requestCount = 0;
   const call = (...args) => { requestCount++; return youtube(...args, key, signal); };
-  const popular = async () => {
-    const ids = []; let pageToken;
-    for (let page = 0; page < 4; page++) {
-      const data = await call('videos', { part: 'id', chart: 'mostPopular', regionCode: region, maxResults: 50, ...(pageToken ? { pageToken } : {}) });
-      ids.push(...data.items.map(v => v.id));
-      pageToken = data.nextPageToken;
-      if (!pageToken) break;
-    }
-    return ids;
-  };
   const search = async q => {
     const data = await call('search', { part: 'id', q, type: 'video', videoDuration: 'short', order: 'viewCount',
       publishedAfter: new Date(now - 7 * 24 * HOUR).toISOString(), regionCode: region, relevanceLanguage: lang, maxResults: 50 });
     return data.items.map(v => v.id?.videoId);
   };
-  const groups = await Promise.all([popular(), search('#shorts'), search('shorts')]);
+  // Only #shorts-tagged searches feed the pool. chart=mostPopular returns
+  // long-form horizontal videos, which contaminate the vertical Shorts pool.
+  const groups = await Promise.all([search('#shorts'), search('shorts')]);
   const ids = [...new Set(groups.flat().filter(id => /^[\w-]{11}$/.test(id || '')))];
   const chunks = [];
   for (let i = 0; i < ids.length; i += 50) chunks.push(ids.slice(i, i + 50));
