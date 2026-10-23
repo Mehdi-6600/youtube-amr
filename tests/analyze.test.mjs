@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler, { durationSeconds, normalizeKeyword, keywords, filterVideos, extractTrends, goldenTime, enforceHashtags, fallbackIdea, normalizeIdea, collectVideos } from '../api/analyze.js';
+import handler, { durationSeconds, normalizeKeyword, keywords, filterVideos, extractTrends, goldenTime, enforceHashtags, fallbackIdea, normalizeIdea, collectVideos, buildMasterPrompt, localizeIdeas, LANGUAGES } from '../api/analyze.js';
 const NOW = Date.parse('2026-10-23T12:00:00Z');
 const id = n => `v${String(n).padStart(10,'0')}`;
 function video(n, overrides={}) {
@@ -145,7 +145,37 @@ test('valid Gemini output accepted but metrics, sound and hashtag limits are ser
   });
   const r=await call();assert.equal(r.body.ideaMode,'gemini');assert.equal(r.body.ideas[0].source,'gemini');assert.ok(!r.body.ideas[0].why.includes('99999999'));assert.ok(!r.body.ideas[0].sound.includes('copyright song'));assert.equal(r.body.ideas[0].hashtags.length,5);assert.equal(r.body.ideas[0].hashtags[0],'#shorts');
 });
-test('trend cap is six with distinct evidence sets',()=>{
+test('trend cap is five with distinct evidence sets',()=>{
   const v=Array.from({length:8},(_,group)=>Array.from({length:3},(_,n)=>({id:id(group*3+n),all:[`topic_${group}`],hashtags:[],channelId:`channel${n}`,ageH:10,vph:100,score:10-group/10,title:'title',channel:'channel',views:1000}))).flat();
-  const trends=extractTrends(v);assert.equal(trends.length,6);assert.equal(trends[0].topic,'topic_0');assert.equal(trends.at(-1).topic,'topic_5');
+  const trends=extractTrends(v);assert.equal(trends.length,5);assert.equal(trends[0].topic,'topic_0');assert.equal(trends.at(-1).topic,'topic_4');
+});
+
+test('all five languages have native captions, dialogue and complete master prompts without AI',()=>{
+  const trend=extractTrends(filterVideos(Array.from({length:12},(_,n)=>video(n)),NOW))[0];
+  const localized=localizeIdeas([trend]);
+  assert.deepEqual(Object.keys(localized),LANGUAGES);
+  const expected={fa:'تو چه تغییری می‌دادی؟',en:'What would you change?',ar:'ما الذي كنت ستغيّره؟',tr:'Sen neyi değiştirirdin?',de:'Was würdest du verändern?'};
+  for(const lang of LANGUAGES){
+    const idea=localized[lang][0];assert.equal(idea.lang,lang);assert.ok(idea.caption.includes(expected[lang]));assert.ok(idea.hashtags.includes('#shorts'));assert.equal(idea.script.length,5);assert.ok(idea.masterPrompt.includes(idea.title));
+    for(const word of ['1080×1920','30fps','9:16','MP4','SRT','0–2','10–12'])assert.ok(idea.masterPrompt.includes(word));
+    assert.ok(idea.masterPrompt.includes(idea.script[0].voice));assert.ok(idea.masterPrompt.includes(`(${lang})`));
+    if(['en','tr','de'].includes(lang))assert.ok(!/\p{Script=Arabic}/u.test(idea.caption));
+  }
+});
+test('neighbouring funny/comedy/fun trends produce different executable stories',()=>{
+  const base={hashtags:[],videoCount:3,channelCount:3,recentCount:1,medianVph:100};
+  const prompts=['funny','comedy','fun','minivlog'].map(topic=>buildMasterPrompt(fallbackIdea({...base,topic},'en'),{...base,topic},'en'));
+  assert.equal(new Set(prompts).size,4);
+  const scenes=['funny','comedy','fun','minivlog'].map(topic=>fallbackIdea({...base,topic},'en').script[0].visual);
+  assert.equal(new Set(scenes).size,4);
+});
+test('wrong-language AI output falls back in the requested language',()=>{
+  const t={topic:'funny',hashtags:[],videoCount:3,channelCount:3,recentCount:1,medianVph:100};
+  const wrong=fallbackIdea(t,'fa');assert.equal(normalizeIdea(wrong,t,'en').source,'template');assert.match(normalizeIdea(wrong,t,'en').caption,/What would you change/);
+  const native=fallbackIdea(t,'de');assert.equal(normalizeIdea({...native,caption:'Ein kreativer Moment.'},t,'de').source,'gemini');assert.match(normalizeIdea({...native,caption:'Ein kreativer Moment.'},t,'de').caption,/Was würdest du verändern/);
+});
+test('API emits v2 localized output and max five ideas with master prompts',async t=>{
+  setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);setEnv(t,'GEMINI_API_KEY',undefined);youtubeMock(t);
+  const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
+  for(const lang of LANGUAGES)assert.equal(r.body.localizedIdeas[lang].length,r.body.trends.length);
 });
