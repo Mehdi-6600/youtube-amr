@@ -12,6 +12,7 @@ class ApiError extends Error {
   constructor(status, code, message) { super(message); this.status = status; this.code = code; }
 }
 const clean = (value, max = 1000) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+const hasArabic = value => /\p{Script=Arabic}/u.test(String(value || ''));
 export function durationSeconds(iso = '') {
   const m = /^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/.exec(iso);
   return m ? Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0) : 0;
@@ -302,7 +303,7 @@ export function englishProductionIdea(idea) {
     ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
   ];
   const topic=String(idea.topic || '').toLowerCase();
-  const story=/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6;
+  const story=idea.reference?6:(/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6);
   const voices=['Can you guess what this is?','Watch this little detail.','Just one small change…','Did you expect that?','Take another look.'];
   const texts=['Take a guess','Watch closely','One small change','Surprised?','Watch again'];
   const title=english(idea.title,'An original visual surprise');
@@ -342,7 +343,9 @@ DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot l
 function prepareNonEnglishIdea(idea, trend, lang = 'fa') {
   const name = (LOCALES[lang] || LOCALES.fa).name;
   const baseScript = Array.isArray(idea.script) ? idea.script : [];
-  const refLine = idea.reference ? `الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${idea.reference.title}» ${idea.reference.url}\n` : '';
+  const arabic = lang === 'fa' || lang === 'ar';
+  const refTitle = idea.reference && (arabic ? hasArabic(idea.reference.title) : !hasArabic(idea.reference.title)) ? idea.reference.title : '';
+  const refLine = idea.reference && refTitle ? `الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${refTitle}» ${idea.reference.url}\n` : '';
   const renderLocal = s => `نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد متنی.
 
 موضوع الهام: #${trend.topic} | عنوان: ${idea.title}
@@ -366,15 +369,27 @@ export function buildMasterPrompt(idea, trend, lang = 'fa') {
 }
 const defaultTitle = (t, lang) => {
   const topic = clean(t.topic, 35);
-  return lang === 'en' ? `Original idea: ${topic}` : `ایده اورجینال درباره ${topic}`;
+  const arabic = lang === 'fa' || lang === 'ar';
+  const safe = (arabic || !hasArabic(topic)) ? topic : '';
+  const phrases = { en: 'Original idea', fa: 'ایده اورجینال درباره', ar: 'فكرة أصلية عن', tr: 'Özgün bir fikir', de: 'Eine originelle Idee' };
+  return `${phrases[lang] || phrases.fa}${safe ? ' ' + safe : ''}`;
 };
 export function fallbackIdea(t, lang = 'fa') {
-  const locale = LOCALES[lang] || LOCALES.fa, story = storyFor(t.topic);
-  const title = story === 6 ? defaultTitle(t, lang) : locale.titles[story];
+  const locale = LOCALES[lang] || LOCALES.fa;
   const reference = (Array.isArray(t.evidence) && t.evidence[0]) ? {
     title: clean(t.evidence[0].title, 120), url: t.evidence[0].url,
     channel: clean(t.evidence[0].channel, 100), views: t.evidence[0].views, ageH: t.evidence[0].ageH
   } : null;
+  // Without AI, do not invent an unrelated storyboard. Use the real viral
+  // Short's own title (when it is in the target language's script) and a
+  // topic-neutral structure, and tell the agent to create an original
+  // version of that real trending Short (not a copy).
+  const arabic = lang === 'fa' || lang === 'ar';
+  const useReal = !!reference && (arabic ? hasArabic(reference.title) : !hasArabic(reference.title));
+  const story = reference ? 6 : storyFor(t.topic);
+  const title = useReal
+    ? Array.from(reference.title).slice(0, 59).join('')
+    : (story === 6 ? defaultTitle(t, lang) : locale.titles[story]);
   const hashtags = enforceHashtags([`#${t.topic}`, ...locale.tags], t.topic);
   const baseCaption = `${locale.intro}${title}.\n${locale.question} 👇`;
   const caption = ensureCaptionLength(baseCaption, hashtags, lang);
