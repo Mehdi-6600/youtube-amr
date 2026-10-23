@@ -80,17 +80,33 @@ export function extractTrends(videos) {
 export function goldenTime(videos, tz) {
   const top = [...videos].sort((a, b) => b.score - a.score).slice(0, Math.max(15, Math.ceil(videos.length * .4)));
   const hours = Array(24).fill(0), days = Array(7).fill(0);
-  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23', weekday: 'short' });
+  const minuteSamples = Array.from({ length: 24 }, () => []);
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', hourCycle: 'h23', weekday: 'short' });
   const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   for (const v of top) {
     const p = Object.fromEntries(fmt.formatToParts(new Date(v.publishedAt)).map(x => [x.type, x.value]));
-    hours[Number(p.hour) % 24] += v.score; days[names.indexOf(p.weekday)] += v.score;
+    const hour = Number(p.hour) % 24;
+    hours[hour] += v.score; days[names.indexOf(p.weekday)] += v.score;
+    minuteSamples[hour].push({ minute: Number(p.minute), weight: v.score });
   }
   const histogram = hours.map((n, i) => n + .5 * hours[(i + 23) % 24] + .5 * hours[(i + 1) % 24]);
   const ranked = histogram.map((weight, hour) => ({ hour, weight })).sort((a, b) => b.weight - a.weight || a.hour - b.hour);
   const bestHour = ranked[0].hour;
   const secondHour = ranked.find(x => Math.min(Math.abs(x.hour - bestHour), 24 - Math.abs(x.hour - bestHour)) >= 4).hour;
-  return { bestHour, secondHour, topDays: days.map((weight, day) => ({ day, weight })).sort((a, b) => b.weight - a.weight || a.day - b.day).slice(0, 3).map(d => d.day),
+  // This is a descriptive estimate of publication minutes, not measured viewer activity.
+  // Prefer observations in the chosen hour; if smoothing picked an empty hour,
+  // use its neighbouring observations. Never invent a random minute.
+  const minuteFor = hour => {
+    const samples = (minuteSamples[hour].length ? minuteSamples[hour]
+      : [...minuteSamples[(hour + 23) % 24], ...minuteSamples[(hour + 1) % 24]])
+      .slice().sort((a, b) => a.minute - b.minute);
+    const half = samples.reduce((sum, s) => sum + s.weight, 0) / 2;
+    let total = 0;
+    for (const sample of samples) { total += sample.weight; if (total >= half) return sample.minute; }
+    return 0;
+  };
+  return { bestHour, secondHour, bestMinute: minuteFor(bestHour), secondMinute: minuteFor(secondHour),
+    minuteMethod: 'weighted-median-publication', topDays: days.map((weight, day) => ({ day, weight })).sort((a, b) => b.weight - a.weight || a.day - b.day).slice(0, 3).map(d => d.day),
     histogram, rawHistogram: hours, sampleSize: top.length, confidence: top.length >= 60 ? 'بالا' : top.length >= 30 ? 'متوسط' : 'پایین',
     averageDuration: Math.round(top.reduce((n, v) => n + v.duration, 0) / top.length), timezone: tz };
 }

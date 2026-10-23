@@ -37,6 +37,57 @@ test('card has exactly two copyable boxes and safe evidence links',()=>{
   assert.equal((rendered.match(/<textarea /g)||[]).length,2);assert.equal((rendered.match(/data-copy=/g)||[]).length,2);
   assert.ok(!rendered.includes('href="javascript:'));assert.ok(!rendered.includes('<img'));assert.ok(!rendered.includes('<script>'));assert.ok(rendered.includes('&lt;script&gt;'));assert.ok(rendered.includes('lang="en"'));assert.ok(rendered.includes('dir="ltr"'));
 });
-test('main UI has no legacy chart, timing or long policy blocks',()=>{
-  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'2'"));
+test('main UI has no legacy chart or long policy blocks',()=>{
+  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'3'"));
+});
+
+const golden={timezone:'Asia/Tehran',bestHour:18,bestMinute:37,secondHour:10,secondMinute:12,topDays:[5,6,0],histogram:Array(24).fill(1)};
+test('schedule uses real estimated minutes, preferred days, chronological 4h spacing and <=3/day',()=>{
+  context.g=golden;
+  const slots=run("scheduleIdeas(5,g,Date.parse('2026-10-23T08:00:00Z'))");assert.equal(slots.length,5);
+  const counts={};
+  for(let i=0;i<slots.length;i++){
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:golden.timezone,hourCycle:'h23',hour:'2-digit',minute:'2-digit',weekday:'short',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(slots[i])).map(p=>[p.type,p.value]));
+    assert.equal(+parts.hour,i%2===0?18:10);assert.equal(+parts.minute,i%2===0?37:12);assert.ok(['Fri','Sat','Sun'].includes(parts.weekday));assert.ok(Date.parse(slots[i])>Date.parse('2026-10-23T08:05:00Z'));
+    if(i)assert.ok(Date.parse(slots[i])-Date.parse(slots[i-1])>=4*3600000);
+    const date=[parts.year,parts.month,parts.day].join('-');counts[date]=(counts[date]||0)+1;
+  }
+  assert.ok(Object.values(counts).every(n=>n<=3));
+});
+test('minutes that reduce a nominal 4-hour window below four hours are never scheduled too close',()=>{
+  context.g={...golden,bestHour:18,bestMinute:55,secondHour:22,secondMinute:5,topDays:[0,1,2,3,4,5,6]};
+  const slots=run("scheduleIdeas(5,g,Date.parse('2026-10-23T08:00:00Z'))");assert.equal(slots.length,5);
+  for(let i=1;i<slots.length;i++)assert.ok(Date.parse(slots[i])-Date.parse(slots[i-1])>=4*3600000);
+});
+test('wall-clock minute conversion supports half-hour zones and skips DST gaps',()=>{
+  assert.equal(new Date(run("zonedInstant(2026,10,23,18,37,'Asia/Tehran')")).toISOString(),'2026-10-23T15:07:00.000Z');
+  assert.equal(run("zonedInstant(2026,3,29,2,30,'Europe/Amsterdam')"),null);
+  for(const tz of ['Europe/Amsterdam','America/New_York','Australia/Sydney']){
+    context.g={...golden,timezone:tz,bestHour:23,bestMinute:50,secondHour:3,secondMinute:15};
+    const slots=run("scheduleIdeas(5,g,Date.parse('2026-10-24T20:00:00Z'))");assert.equal(slots.length,5);
+    for(let i=1;i<slots.length;i++)assert.ok(Date.parse(slots[i])-Date.parse(slots[i-1])>=4*3600000);
+  }
+});
+test('saved upload times survive language changes and are renewed once outdated',()=>{
+  context.r={...fixture,golden};
+  const now=Date.parse('2026-10-23T08:00:00Z');context.now=now;
+  const schedule=run('uploadSchedule(r,now)');assert.equal(schedule.times.length,1);
+  context.r.uploadSchedule=schedule;assert.equal(run('uploadSchedule(r,now)'),schedule);
+  for(const lang of ['fa','en','ar','tr','de']){context.lang=lang;run('getIdeas(r,lang)');assert.equal(run('uploadSchedule(r,now)'),schedule);}
+  context.now=Date.parse(schedule.times[0])+1000;const renewed=run('uploadSchedule(r,now)');assert.ok(Date.parse(renewed.times[0])>context.now);
+});
+test('missing minutes or invalid timing data does not invent upload recommendations',()=>{
+  context.r={...fixture,golden:{...golden,bestMinute:undefined}};assert.equal(run('uploadSchedule(r)'),null);
+  context.r={...fixture,golden:{...golden,timezone:'not/a/zone'}};assert.equal(run('uploadSchedule(r)'),null);
+  context.r={...fixture,golden:{...golden,bestMinute:99}};assert.equal(run('uploadSchedule(r)'),null);
+  context.r={...fixture};assert.equal(run('uploadSchedule(r)'),null);
+});
+test('card displays Persian calendar HH:mm and timezone above its master prompt',()=>{
+  const idea=fixture.localizedIdeas.en[0];const rendered=run('renderCard')(idea,trend,0,'en',{at:'2026-10-23T15:07:00.000Z',timezone:'Asia/Tehran'});
+  assert.match(rendered,/۱۸:۳۷/);assert.match(rendered,/جمعه/);assert.match(rendered,/۱۴۰۵/);assert.match(rendered,/Asia\/Tehran/);assert.ok(rendered.indexOf('انتشار پیشنهادی')<rendered.indexOf('مسترپرامپت ساخت ویدیو'));assert.equal((rendered.match(/<textarea /g)||[]).length,2);
+});
+test('no evidence for a second hour uses the primary hour rather than a made-up secondary window',()=>{
+  context.g={...golden,histogram:Array(24).fill(0)};context.g.histogram[18]=2;
+  const slots=run("scheduleIdeas(5,g,Date.parse('2026-10-23T08:00:00Z'))");
+  for(const slot of slots){const p=new Intl.DateTimeFormat('en-GB',{timeZone:golden.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(slot));assert.equal(p,'18:37');}
 });
