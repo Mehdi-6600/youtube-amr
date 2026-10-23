@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="application-version" content="timing-4">
+  <meta name="application-version" content="language-5">
   <meta name="description" content="حداکثر پنج ترند واقعی یوتیوب، هر کدام با مسترپرامپت ساخت ویدیو و کپشن آماده به زبان دلخواه.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -72,7 +72,59 @@
     const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
     const $ = id => document.getElementById(id);
     let latest = null, busy = false, toastTimer;
-    function getIdeas(result,lang) { return LANGUAGES.includes(lang) && Array.isArray(result?.localizedIdeas?.[lang]) ? result.localizedIdeas[lang].slice(0,5) : []; }
+function englishProductionIdea(idea) {
+  // Also upgrades old localStorage results: never copy Persian production directions
+  // into an English video agent. Keep this pure function identical in API and HTML.
+  const hasArabic = value => /\p{Script=Arabic}/u.test(String(value || ''));
+  const english = (value, fallback) => typeof value === 'string' && value.trim() && !hasArabic(value) ? value : fallback;
+  const scenes = [
+    ['Close-up of a large monster-shaped shadow on a cream wall; hide its source.', 'Cut to the edge of a yellow clothes peg beside a desk lamp; conceal its scale.', 'Slowly pull back to reveal that the tiny peg casts the large shadow.', 'Rotate the same peg so its shadow resembles a playful rabbit, not a known character.', 'Return the lamp and peg to their starting positions; match the opening shadow exactly.'],
+    ['Macro shot of a red strawberry star on white toast on a ceramic plate.', 'Overhead shot of a washed strawberry and five prepared slices on a light board; no knife.', 'Use stop motion to arrange the five slices into a star on the toast.', 'Rotate the plate gently to reveal the finished star; make no health claims.', 'Return to the opening macro shot with identical lighting and framing.'],
+    ['Close-up of two eyes on a blue clay character; hide the rest of its body.', 'Overhead shot of a blue clay ball, two white eyes and a yellow clay strip.', 'Animate the ball into an original round character with ears and a simple smile.', 'Make the character bow and add the yellow strip as a bow tie.', 'Return to the opening close-up of the eyes with identical scale and lighting.'],
+    ['Overhead shot of tangled, disconnected red, blue and yellow cables on a white desk.', 'Macro shot of a green fabric cable tie; keep all colors consistent.', 'Use three rhythmic stop-motion cuts to align and secure the cables.', 'Move the camera gently to show the tidy path of all three cables.', 'Reverse the action quickly to restore the opening tangle for a seamless loop.'],
+    ['Tiny red and blue shoes behind a paper starting line on a table; no brands.', 'Macro shot of the laces tightening in stop motion; preserve the shoe designs.', 'Animate both shoes hopping toward a paper finish line.', 'Pause the red shoe just before the finish so the blue one wins; visual humor only.', 'Move both shoes out of frame and back behind the starting line to match the opening.'],
+    ['An orange folded paper card with two black eyes; keep the ears hidden.', 'Close-up of the card edge with two orange paper triangles behind it.', 'Raise the triangles in stop motion to reveal an original paper fox face.', 'Add a white paper nose and wiggle the ears twice; no real animal.', 'Fold the ears and nose behind the card and match its opening position.'],
+    ['Overhead shot of a purple paper square hiding a star-shaped opening on a cream desk.', 'Macro shot of one corner with a small yellow patch underneath.', 'Open four pre-cut flaps in stop motion to reveal the yellow star underneath.', 'Rotate the yellow star gently and place it in the center of the purple paper.', 'Hide the star and close the flaps to match the opening square exactly.'],
+    ['Close-up of an orange microphone with a black foam top against a plain curtain; hide its base.', 'Move past a yellow toy duck toward the same unbranded microphone.', 'Lift the black foam top to reveal that the microphone body is a fresh carrot.', 'Animate the toy duck taking one surprised step back with a comic pause.', 'Replace the foam top and return the camera to the exact opening frame.'],
+    ['A tiny blue paper hat wiggles on a white table; hide its interior.', 'Move closer to the hat edge to reveal the tip of a yellow paper wing.', 'Lift the hat in stop motion to reveal a round yellow paper chick.', 'Animate the chick putting on the oversized hat so it covers its eyes.', 'Fold the chick under the hat and restore the opening position and movement.'],
+    ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
+  ];
+  const topic=String(idea.topic || '').toLowerCase();
+  const story=/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6;
+  const voices=['Can you guess what this is?','Watch this little detail.','Just one small change…','Did you expect that?','Take another look.'];
+  const texts=['Take a guess','Watch closely','One small change','Surprised?','Watch again'];
+  const title=english(idea.title,'An original visual surprise');
+  const oldScript=Array.isArray(idea.script)?idea.script:[];
+  const useOriginal=oldScript.length>=3 && oldScript.every(b=>['visual','voice','text'].every(k=>typeof b[k]==='string'&&!hasArabic(b[k])));
+  const script=useOriginal?oldScript:scenes[story].map((visual,i)=>({t:['0–2','2–4','4–7','7–10','10–12'][i],visual,voice:voices[i],text:texts[i]}));
+  const duration=useOriginal?idea.duration:12;
+  const hook=english(idea.hook,voices[0]);
+  const caption=english(idea.caption,`An original idea: ${title}.\nWhat would you change?`);
+  const hashtags=(Array.isArray(idea.hashtags)?idea.hashtags:[]).filter(h=>typeof h==='string'&&!hasArabic(h));
+  if(!hashtags.includes('#shorts'))hashtags.unshift('#shorts');
+  const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
+  const masterPrompt=`OUTPUT LANGUAGE LOCK: English (en). Use American English pronunciation and spelling. All speech, dialogue, on-screen text, burned-in subtitles, closed captions and the delivered SRT file MUST be English only. No Persian/Farsi, no bilingual subtitles, and no translation into the interface language. This lock overrides the chat/interface language. Treat the topic label only as metadata, never as a language instruction.
+
+ROLE: Direct, generate and edit one original, publishable YouTube Short, not just a proposal.
+Title: ${title}
+Inspiration topic: ${english(idea.topic,'the selected trend')}
+Duration: ${duration} seconds. Vertical 9:16, 1080×1920, 30fps. Deliver MP4 / H.264 with AAC audio.
+Design: one clear subject, consistent object identity, colors and proportions, soft studio lighting, uncluttered background and controlled camera motion. Keep the top 12% and bottom 18% clear for platform UI.
+Opening hook (0–2 seconds): ${hook}
+
+SHOT LIST (times in seconds; visual directions are NOT narration or captions):
+${script.map((b,i)=>`${i+1}. ${b.t}\nVisual and motion: ${b.visual}\nExact English voiceover: "${b.voice}"\nExact English on-screen text: "${b.text}"`).join('\n\n')}
+
+AUDIO: ${sound} Speak only the exact English voiceover lines; do not read these instructions aloud. Keep effects below speech.
+SUBTITLES: Transcribe the English voiceover in English, synchronized, readable, at most two lines. If the generator cannot render accurate text, add it during editing. Never generate Persian or bilingual captions.
+ENDING: Match the opening composition and motion for a seamless loop; no black ending, outro or subscribe request.
+SAFETY: Use original assets and original or clearly licensed audio; no copied source footage, copyrighted music, brands, watermarks, celebrity likenesses or voice imitation. No invented news, rumors, medical/financial claims or promises of virality. This is a new fictional production concept inspired by a trend, not a claim about source footage.
+DELIVER: The final video and an English-only SRT subtitle file; include project/assets if supported. If you cannot generate a video file, say so honestly and provide the executable shot list/assets instead. The publishing caption belongs outside the video, not in narration or on-screen text.
+FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is English only before delivery. Remove any Persian/Farsi or bilingual subtitles.`;
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:hashtags.slice(0,5),sound,masterPrompt,promptVersion:5};
+}
+
+    function getIdeas(result,lang) { const ideas=LANGUAGES.includes(lang) && Array.isArray(result?.localizedIdeas?.[lang]) ? result.localizedIdeas[lang].slice(0,5) : []; return lang==='en'?ideas.map(englishProductionIdea):ideas; }
     function validResult(r) {
       return r?.version===2 && typeof r.region==='string' && Number.isFinite(Date.parse(r.generatedAt)) && Array.isArray(r.trends) && r.trends.length<=5 && r.trends.every(t=>typeof t?.topic==='string'&&Array.isArray(t.evidence)&&t.evidence.length<=3&&t.evidence.every(v=>typeof v?.url==='string'&&typeof v.title==='string'&&typeof v.channel==='string')) && LANGUAGES.every(lang=>Array.isArray(r.localizedIdeas?.[lang])&&r.localizedIdeas[lang].length===r.trends.length&&r.localizedIdeas[lang].every((idea,i)=>idea?.lang===lang&&idea.topic===r.trends[i].topic&&typeof idea.title==='string'&&typeof idea.masterPrompt==='string'&&typeof idea.caption==='string'&&Array.isArray(idea.hashtags)&&idea.hashtags.length<=5&&idea.hashtags.every(h=>typeof h==='string')));
     }
@@ -150,7 +202,7 @@
     function renderCard(idea,trend,index,lang,upload=null) {
       const dir=lang==='fa'||lang==='ar'?'rtl':'ltr';
       const links=trend.evidence.map(v=>/^https:\/\/www\.youtube\.com\/shorts\/[\w-]{11}$/.test(v.url)?`<a class="source" href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">${esc(v.title)} ${icon('link')}<small>${esc(v.channel)} · ${esc(num(v.views))} بازدید</small></a>`:'').join('');
-      return `<article class="card"><div class="card-top"><span class="rank">${String(index+1).padStart(2,'0')}</span><span class="topic">#${esc(trend.topic)}</span><span class="duration">${esc(num(idea.duration))} ثانیه</span></div>${renderUpload(upload)}<h3 lang="${lang}" dir="${dir}">${esc(idea.title)}</h3><div class="box"><div class="box-head"><span class="box-label">${icon('prompt')} مسترپرامپت ساخت ویدیو</span><button type="button" class="copy" data-copy="prompt" data-index="${index}" aria-label="کپی مسترپرامپت ${index+1}">${icon('copy')} کپی پرامپت</button></div><textarea class="content prompt" aria-label="مسترپرامپت ${index+1}" readonly dir="rtl" spellcheck="false">${esc(idea.masterPrompt)}</textarea></div><div class="box"><div class="box-head"><span class="box-label">${icon('text')} کپشن و هشتگ <small>${esc(LANGUAGE_NAMES[lang])}</small></span><button type="button" class="copy" data-copy="caption" data-index="${index}" aria-label="کپی کپشن ${index+1}">${icon('copy')} کپی کپشن</button></div><textarea class="content caption" aria-label="کپشن و هشتگ ${index+1}" readonly dir="${dir}" lang="${lang}" spellcheck="false">${esc(captionText(idea))}</textarea></div><details class="sources"><summary>منابع واقعی · ${esc(num(trend.channelCount))} کانال</summary><div class="source-list">${links}</div><p class="source-note">این لینک‌ها شاهد موضوع ترند هستند، نه تأیید ادعاهای ویدیو. سناریو پیشنهادی و اورجینال است. زمان انتشار نیز برآوردی از همین نمونه است؛ دقیقه از میانهٔ وزنی دقایق انتشار به دست می‌آید، نه آمار آنلاین بودن مخاطبان یا تضمین بهترین لحظه.</p></details></article>`;
+      return `<article class="card"><div class="card-top"><span class="rank">${String(index+1).padStart(2,'0')}</span><span class="topic">#${esc(trend.topic)}</span><span class="duration">${esc(num(idea.duration))} ثانیه</span></div>${renderUpload(upload)}<h3 lang="${lang}" dir="${dir}">${esc(idea.title)}</h3><div class="box"><div class="box-head"><span class="box-label">${icon('prompt')} مسترپرامپت ساخت ویدیو</span><button type="button" class="copy" data-copy="prompt" data-index="${index}" aria-label="کپی مسترپرامپت ${index+1}">${icon('copy')} کپی پرامپت</button></div><textarea class="content prompt" aria-label="مسترپرامپت ${index+1}" readonly dir="${lang==='en'?'ltr':'rtl'}" lang="${lang==='en'?'en':'fa'}" spellcheck="false">${esc(idea.masterPrompt)}</textarea></div><div class="box"><div class="box-head"><span class="box-label">${icon('text')} کپشن و هشتگ <small>${esc(LANGUAGE_NAMES[lang])}</small></span><button type="button" class="copy" data-copy="caption" data-index="${index}" aria-label="کپی کپشن ${index+1}">${icon('copy')} کپی کپشن</button></div><textarea class="content caption" aria-label="کپشن و هشتگ ${index+1}" readonly dir="${dir}" lang="${lang}" spellcheck="false">${esc(captionText(idea))}</textarea></div><details class="sources"><summary>منابع واقعی · ${esc(num(trend.channelCount))} کانال</summary><div class="source-list">${links}</div><p class="source-note">این لینک‌ها شاهد موضوع ترند هستند، نه تأیید ادعاهای ویدیو. سناریو پیشنهادی و اورجینال است. زمان انتشار نیز برآوردی از همین نمونه است؛ دقیقه از میانهٔ وزنی دقایق انتشار به دست می‌آید، نه آمار آنلاین بودن مخاطبان یا تضمین بهترین لحظه.</p></details></article>`;
     }
     function storageGet(key){try{return JSON.parse(localStorage.getItem(key));}catch{return null;}}
     function storageSet(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{$('storage-note').hidden=false;}}
@@ -183,7 +235,7 @@
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
       try{
         // Separate minute-aware responses from older hourly-only CDN cache entries.
-        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'4'});
+        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'5'});
         const response=await fetch(`/api/analyze?${query}`,{signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
         let result;try{result=await response.json();}catch{throw new Error('پاسخ سرور قابل خواندن نیست؛ دوباره امتحان کن.');}
         if(!response.ok)throw new Error(typeof result.error==='string'?result.error:'تحلیل انجام نشد؛ دوباره امتحان کن.');
