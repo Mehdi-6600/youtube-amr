@@ -38,7 +38,7 @@ test('card has exactly two copyable boxes and safe evidence links',()=>{
   assert.ok(!rendered.includes('href="javascript:'));assert.ok(!rendered.includes('<img'));assert.ok(!rendered.includes('<script>'));assert.ok(rendered.includes('&lt;script&gt;'));assert.ok(rendered.includes('lang="en"'));assert.ok(rendered.includes('dir="ltr"'));
 });
 test('main UI has no legacy chart or long policy blocks',()=>{
-  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'3'"));
+  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'4'"));
 });
 
 const golden={timezone:'Asia/Tehran',bestHour:18,bestMinute:37,secondHour:10,secondMinute:12,topDays:[5,6,0],histogram:Array(24).fill(1)};
@@ -76,18 +76,42 @@ test('saved upload times survive language changes and are renewed once outdated'
   for(const lang of ['fa','en','ar','tr','de']){context.lang=lang;run('getIdeas(r,lang)');assert.equal(run('uploadSchedule(r,now)'),schedule);}
   context.now=Date.parse(schedule.times[0])+1000;const renewed=run('uploadSchedule(r,now)');assert.ok(Date.parse(renewed.times[0])>context.now);
 });
-test('missing minutes or invalid timing data does not invent upload recommendations',()=>{
-  context.r={...fixture,golden:{...golden,bestMinute:undefined}};assert.equal(run('uploadSchedule(r)'),null);
+test('invalid timing data does not invent upload recommendations',()=>{
   context.r={...fixture,golden:{...golden,timezone:'not/a/zone'}};assert.equal(run('uploadSchedule(r)'),null);
   context.r={...fixture,golden:{...golden,bestMinute:99}};assert.equal(run('uploadSchedule(r)'),null);
   context.r={...fixture};assert.equal(run('uploadSchedule(r)'),null);
 });
 test('card displays Persian calendar HH:mm and timezone above its master prompt',()=>{
   const idea=fixture.localizedIdeas.en[0];const rendered=run('renderCard')(idea,trend,0,'en',{at:'2026-10-23T15:07:00.000Z',timezone:'Asia/Tehran'});
-  assert.match(rendered,/۱۸:۳۷/);assert.match(rendered,/جمعه/);assert.match(rendered,/۱۴۰۵/);assert.match(rendered,/Asia\/Tehran/);assert.ok(rendered.indexOf('انتشار پیشنهادی')<rendered.indexOf('مسترپرامپت ساخت ویدیو'));assert.equal((rendered.match(/<textarea /g)||[]).length,2);
+  assert.match(rendered,/۱۸:۳۷/);assert.match(rendered,/جمعه/);assert.match(rendered,/۱۴۰۵/);assert.match(rendered,/Asia\/Tehran/);assert.ok(rendered.indexOf('زمان پیشنهادی بارگذاری')<rendered.indexOf('مسترپرامپت ساخت ویدیو'));assert.equal((rendered.match(/<textarea /g)||[]).length,2);
 });
 test('no evidence for a second hour uses the primary hour rather than a made-up secondary window',()=>{
   context.g={...golden,histogram:Array(24).fill(0)};context.g.histogram[18]=2;
   const slots=run("scheduleIdeas(5,g,Date.parse('2026-10-23T08:00:00Z'))");
   for(const slot of slots){const p=new Intl.DateTimeFormat('en-GB',{timeZone:golden.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(slot));assert.equal(p,'18:37');}
+});
+
+test('restored hourly-only results show an honest hour range instead of hiding upload times',()=>{
+  context.r={...fixture,golden:{...golden,bestMinute:undefined,secondMinute:undefined}};
+  context.now=Date.parse('2026-10-23T08:00:00Z');
+  const schedule=run('uploadSchedule(r,now)');assert.equal(schedule.precision,'hour');assert.equal(schedule.times.length,1);
+  context.upload={at:schedule.times[0],timezone:schedule.timezone,precision:schedule.precision};
+  const card=run('renderUpload(upload)');assert.match(card,/بازهٔ پیشنهادی بارگذاری/);assert.match(card,/۱۸:۰۰–۱۸:۵۹/);assert.ok(!card.includes('دوباره تحلیل کن'));
+  assert.equal(run('needsTimingRefresh(r)'),true);
+});
+test('legacy timing refresh is automatic, throttled for 30 minutes, and not retriggered for upgraded results',()=>{
+  const now=Date.now();context.now=now;
+  context.r={...fixture,golden:{...golden,bestMinute:undefined}};assert.equal(run('shouldRefreshTiming(r,now)'),true);
+  context.r.timingRefreshAttemptAt=now;assert.equal(run('shouldRefreshTiming(r,now+1000)'),false);assert.equal(run('shouldRefreshTiming(r,now+30*60000)'),true);
+  context.r={...fixture,golden};assert.equal(run('shouldRefreshTiming(r,now)'),false);
+  context.r={...fixture,trends:[]};assert.equal(run('shouldRefreshTiming(r,now)'),false);
+});
+test('minute-level estimates stay minute-level and use a clearly named upload heading',()=>{
+  context.r={...fixture,golden};const schedule=run('uploadSchedule(r)');assert.equal(schedule.precision,'minute');
+  context.upload={at:schedule.times[0],timezone:schedule.timezone,precision:schedule.precision};const card=run('renderUpload(upload)');assert.match(card,/زمان پیشنهادی بارگذاری/);assert.ok(!card.includes('بازهٔ'));
+});
+test('HTML routes require cache revalidation without disabling API quota caching',async()=>{
+  const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
+  for(const path of ['/','/index.html'])assert.ok(config.headers.some(rule=>rule.source===path&&rule.headers.some(h=>h.key==='Cache-Control'&&h.value.includes('must-revalidate'))));
+  assert.ok(!config.headers.some(rule=>rule.source==='/api/analyze'&&rule.headers.some(h=>h.key==='Cache-Control')));
 });
