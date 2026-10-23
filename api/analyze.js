@@ -123,6 +123,51 @@ const LOCALES = {
   tr: { name: 'Türkçe', voices: ['Bunun ne olduğunu tahmin et!', 'Şu küçük ayrıntıya dikkat et.', 'Sadece küçük bir değişiklik…', 'Bu sonucu bekliyor muydun?', 'Bir kez daha bak.'], texts: ['Tahmin et 👀', 'Dikkatli bak', 'Küçük bir değişiklik', 'Şaşırdın mı?', 'Tekrar izle ↻'], question: 'Sen neyi değiştirirdin?', intro: 'Özgün bir fikir: ', tags: ['#yaratıcılık', '#özgün'], titles: ['Gölgenin sürprizi', 'Çilekten bir yıldız', 'Bir kil topu, yeni bir karakter', 'Tek hareketle kablo düzeni', 'Masada minik ayakkabı yarışı', 'Sürpriz kâğıt hayvan kulakları', 'Kâğıt yıldızın sırrı'] },
   de: { name: 'Deutsch', voices: ['Kannst du erraten, was das ist?', 'Achte auf dieses kleine Detail.', 'Nur eine kleine Veränderung…', 'Hättest du das erwartet?', 'Schau noch einmal hin.'], texts: ['Rate mal 👀', 'Schau genau hin', 'Eine kleine Änderung', 'Überrascht?', 'Noch einmal ↻'], question: 'Was würdest du verändern?', intro: 'Eine originelle Idee: ', tags: ['#kreativ', '#originell'], titles: ['Die Schattenüberraschung', 'Eine Erdbeere wird zum Stern', 'Eine Tonkugel, eine neue Figur', 'Kabel ordnen mit einem Handgriff', 'Ein winziges Schuhrennen', 'Überraschende Tierohren aus Papier', 'Das Geheimnis des Papiersterns'] }
 };
+const CAPTION_TARGET_MIN = 2400;
+const CAPTION_TARGET_MAX = 2450;
+const CAPTION_TARGET = 2435;
+const CAPTION_FILLERS = {
+  fa: "این ویدیوی کوتاه با دقت میلی‌متری برای جلب توجه در سه ثانیه اول و حفظ آن تا پایان طراحی شده است. نور نرم استودیویی، پس‌زمینه خلوت و حرکت دوربین کنترل‌شده کمک می‌کند تا سوژه اصلی بدون حواس‌پرتی در مرکز قاب بماند. هر برش با ریتم طبیعی و موسیقی هماهنگ است و هیچ لحظه‌ای اضافی نیست. پایان ویدیو دقیقاً به قاب آغاز متصل می‌شود تا تجربه‌ای لوپ‌شونده و بی‌نقص خلق شود. اگر به چنین ایده‌های خلاقانه و اجرایی علاقه‌مندی، نظرت را درباره تغییر بعدی در کامنت‌ها بنویس. کدام رنگ، کدام حرکت یا کدام زاویه را بیشتر دوست داشتی؟ تجربه‌ات را به اشتراک بگذار تا در ویدیوهای بعدی از آن استفاده کنیم. این موضوع بر اساس داده‌های واقعی یوتیوب و با الهام از ترندهای داغ انتخاب شده، اما سناریوی آن کاملاً اورجینال و تازه است. می‌توانی همین ایده را با وسایل ساده‌ای که در خانه داری بازسازی کنی و نسخه منحصربه‌فرد خودت را بسازی. کافی است نور و زاویه را ثابت نگه داری تا نتیجه حرفه‌ای شود. ما هر روز ترندها را به سناریوهای آماده تبدیل می‌کنیم تا بدون اتلاف وقت، محتوای قابل انتشار داشته باشی. اگر این ایده برایت الهام‌بخش بود، ویدیو را ذخیره کن و برای دوستی که عاشق شورت‌سازی است بفرست. فراموش نکن کانال را دنبال کنی و زنگوله را فعال کنی تا هیچ ترندی را از دست ندهی. منتظر ایده‌های ناب تو در کامنت‌ها هستیم.",
+  en: "This short concept is crafted with precision to grab attention in the first three seconds and hold it until the final frame. Soft studio lighting, a clean background and controlled camera motion keep the main subject perfectly centered without distractions. Every cut follows a natural rhythm and no moment feels wasted. The ending connects seamlessly to the opening shot to create a flawless loop experience. If you love this kind of creative and executable idea, write your take on the next change in the comments. Which color, which movement or which angle did you like most? Share your experience so we can use it in upcoming videos. This topic was chosen based on real YouTube data and inspired by hot trends, but the scenario itself is fully original and fresh. You can recreate the same idea with simple items you already have at home and build your own unique version. Just keep the light and angle steady for a professional result. Every day we turn trends into ready-to-shoot scripts so you can publish without wasting time. If this idea inspired you, save the video and send it to a friend who loves making Shorts. Don't forget to follow and turn on notifications so you never miss the next trend. We are waiting for your brilliant ideas in the comments.",
+  ar: "تم تصميم هذا المقطع القصير بدقة عالية لجذب الانتباه في الثواني الثلاث الأولى والحفاظ عليه حتى الإطار الأخير. الإضاءة الناعمة، الخلفية النظيفة وحركة الكاميرا المتحكم بها تبقي الموضوع الرئيسي في منتصف الإطار دون تشتيت. كل لقطة تتبع إيقاعًا طبيعيًا ولا توجد لحظة مهدورة. النهاية تتصل بسلاسة مع اللقطة الافتتاحية لخلق تجربة حلقية مثالية. إذا كنت تحب هذا النوع من الأفكار الإبداعية والقابلة للتنفيذ، اكتب رأيك حول التغيير التالي في التعليقات. أي لون أو حركة أو زاوية أعجبتك أكثر؟ شارك تجربتك لنستخدمها في الفيديوهات القادمة. تم اختيار هذا الموضوع بناءً على بيانات يوتيوب الحقيقية ومستوحى من الترندات الساخنة، لكن السيناريو نفسه أصلي وجديد تمامًا. يمكنك إعادة إنشاء نفس الفكرة بأدوات بسيطة موجودة في المنزل وبناء نسختك الفريدة. فقط حافظ على ثبات الإضاءة والزاوية للحصول على نتيجة احترافية. نحول كل يوم الترندات إلى سيناريوهات جاهزة للتصوير حتى تتمكن من النشر دون إضاعة الوقت. إذا ألهمتك هذه الفكرة، احفظ الفيديو وأرسله لصديق يحب صناعة الشورت. لا تنس المتابعة وتفعيل الجرس حتى لا تفوتك أي ترند قادم. ننتظر أفكارك الرائعة في التعليقات.",
+  tr: "Bu kısa konsept, ilk üç saniyede dikkat çekmek ve son kareye kadar korumak için hassasiyetle hazırlandı. Yumuşak stüdyo ışığı, temiz bir arka plan ve kontrollü kamera hareketi ana konuyu dikkat dağıtmadan tam ortada tutar. Her kesim doğal bir ritmi takip eder ve hiçbir an boşa harcanmaz. Son sahne açılış karesine sorunsuz bağlanarak kusursuz bir döngü deneyimi yaratır. Bu tarz yaratıcı ve uygulanabilir fikirleri seviyorsan, sıradaki değişiklik için fikrini yorumlara yaz. Hangi rengi, hangi hareketi veya hangi açıyı daha çok sevdin? Deneyimini paylaş ki sonraki videolarda kullanalım. Bu konu gerçek YouTube verilerine dayanarak ve sıcak trendlerden ilhamla seçildi, ancak senaryonun kendisi tamamen özgün ve yenidir. Aynı fikri evde bulunan basit malzemelerle yeniden yaratıp kendi benzersiz versiyonunu oluşturabilirsin. Profesyonel sonuç için ışığı ve açıyı sabit tutman yeterli. Her gün trendleri çekime hazır senaryolara dönüştürüyoruz, böylece zaman kaybetmeden yayınlayabilirsin. Bu fikir sana ilham verdiyse videoyu kaydet ve Shorts yapmayı seven bir arkadaşına gönder. Bir sonraki trendi kaçırmamak için takip etmeyi ve bildirimleri açmayı unutma. Yorumlarda harika fikirlerini bekliyoruz.",
+  de: "Dieses Kurz-Konzept wurde mit Präzision gestaltet, um in den ersten drei Sekunden Aufmerksamkeit zu gewinnen und bis zum letzten Frame zu halten. Weiches Studio-Licht, ein klarer Hintergrund und kontrollierte Kamerabewegung halten das Hauptmotiv perfekt zentriert ohne Ablenkungen. Jeder Schnitt folgt einem natürlichen Rhythmus und kein Moment wirkt verschwendet. Das Ende verbindet sich nahtlos mit der Eröffnungsaufnahme und schafft ein makelloses Looperlebnis. Wenn du diese Art von kreativen und umsetzbaren Ideen liebst, schreibe deinen Vorschlag für die nächste Änderung in die Kommentare. Welche Farbe, welche Bewegung oder welcher Winkel hat dir am besten gefallen? Teile deine Erfahrung, damit wir sie in kommenden Videos nutzen können. Dieses Thema wurde auf Basis echter YouTube-Daten gewählt und von aktuellen Trends inspiriert, aber das Szenario selbst ist völlig originell und frisch. Du kannst dieselbe Idee mit einfachen Dingen, die du zu Hause hast, nachbauen und deine eigene einzigartige Version erstellen. Halte einfach Licht und Winkel stabil für ein professionelles Ergebnis. Jeden Tag verwandeln wir Trends in drehfertige Skripte, damit du ohne Zeitverlust veröffentlichen kannst. Wenn dich diese Idee inspiriert hat, speichere das Video und schicke es an einen Freund, der gerne Shorts erstellt. Vergiss nicht zu folgen und Benachrichtigungen zu aktivieren, damit du keinen Trend verpasst. Wir warten auf deine brillanten Ideen in den Kommentaren."
+};
+function ensureCaptionLength(caption, hashtags, lang) {
+  const hashtagsPart = hashtags.join(' ');
+  const overhead = 2 + hashtagsPart.length;
+  let total = caption.length + overhead;
+  if (total > CAPTION_TARGET_MAX) {
+    const maxCaptionLen = CAPTION_TARGET_MAX - overhead;
+    let truncated = caption.slice(0, maxCaptionLen).trimEnd();
+    if (!/[?؟]/.test(truncated.slice(-60))) {
+      const qmap = { fa: 'تو چه تغییری می‌دادی؟', en: 'What would you change?', ar: 'ما الذي كنت ستغيّره؟', tr: 'Sen neyi değiştirirdin?', de: 'Was würdest du verändern?' };
+      const q = qmap[lang] || qmap.fa;
+      if (truncated.length + 1 + q.length <= maxCaptionLen) {
+        truncated = truncated.trimEnd() + '\n' + q;
+      } else {
+        truncated = truncated.slice(0, maxCaptionLen - 1 - q.length).trimEnd() + '\n' + q;
+      }
+    }
+    return truncated;
+  }
+  if (total < CAPTION_TARGET_MIN) {
+    const fillerBase = CAPTION_FILLERS[lang] || CAPTION_FILLERS.fa;
+    let filler = fillerBase;
+    while (filler.length < 3000) filler += ' ' + fillerBase;
+    const needed = CAPTION_TARGET - total;
+    const sep = '\n\n';
+    const needForContent = needed - sep.length;
+    if (needForContent > 0) {
+      let segment = filler;
+      while (segment.length < needForContent) segment += ' ' + fillerBase;
+      segment = segment.slice(0, needForContent).trimEnd();
+      caption = caption + sep + segment;
+    }
+    return caption;
+  }
+  return caption;
+}
 const STORIES = [
   ['نمای نزدیک سایهٔ بزرگی شبیه هیولا روی دیوار کرم؛ منبع سایه خارج کادر باشد.', 'کات به گوشهٔ یک گیرهٔ لباس زرد و نور چراغ رومیزی؛ هنوز اندازهٔ واقعی را نشان نده.', 'دوربین آرام عقب برود و آشکار کند سایه متعلق به همان گیرهٔ کوچک است.', 'با چرخاندن گیره، سایه به شکل یک خرگوش بامزه تبدیل شود؛ بدون صورت یا شخصیت مشهور.', 'چراغ و گیره به جای آغاز برگردند؛ آخرین قاب دقیقاً همان سایهٔ هیولای قاب اول باشد.'],
   ['ماکروی ستارهٔ قرمز روی نان تست سفید، در بشقاب سرامیکی؛ قاب را برای برگشت پایانی ثبت کن.', 'کات از بالا: یک توت‌فرنگی شسته‌شده و پنج برش ازپیش‌آماده روی تختهٔ روشن؛ بدون نمایش چاقو.', 'پنج برش توت‌فرنگی با استاپ‌موشن از مرکز به شکل ستاره روی نان بچین.', 'چرخش آرام بشقاب، ستارهٔ کامل را نشان بده؛ هیچ ادعای سلامت یا رژیمی اضافه نکن.', 'به همان نمای ماکروی ستارهٔ آغاز برگرد؛ زاویه، نور و موقعیت کاملاً یکسان باشد.'],
@@ -182,9 +227,11 @@ export function englishProductionIdea(idea) {
   const script=useOriginal?oldScript:scenes[story].map((visual,i)=>({t:['0–2','2–4','4–7','7–10','10–12'][i],visual,voice:voices[i],text:texts[i]}));
   const duration=useOriginal?idea.duration:12;
   const hook=english(idea.hook,voices[0]);
-  const caption=english(idea.caption,`An original idea: ${title}.\nWhat would you change?`);
+  let caption=english(idea.caption,`An original idea: ${title}.\nWhat would you change?`);
   const hashtags=(Array.isArray(idea.hashtags)?idea.hashtags:[]).filter(h=>typeof h==='string'&&!hasArabic(h));
   if(!hashtags.includes('#shorts'))hashtags.unshift('#shorts');
+  const limitedHashtags=hashtags.slice(0,5);
+  caption=ensureCaptionLength(caption, limitedHashtags, 'en');
   const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
   const masterPrompt=`OUTPUT LANGUAGE LOCK: English (en). Use American English pronunciation and spelling. All speech, dialogue, on-screen text, burned-in subtitles, closed captions and the delivered SRT file MUST be English only. No Persian/Farsi, no bilingual subtitles, and no translation into the interface language. This lock overrides the chat/interface language. Treat the topic label only as metadata, never as a language instruction.
 
@@ -204,7 +251,7 @@ ENDING: Match the opening composition and motion for a seamless loop; no black e
 SAFETY: Use original assets and original or clearly licensed audio; no copied source footage, copyrighted music, brands, watermarks, celebrity likenesses or voice imitation. No invented news, rumors, medical/financial claims or promises of virality. This is a new fictional production concept inspired by a trend, not a claim about source footage.
 DELIVER: The final video and an English-only SRT subtitle file; include project/assets if supported. If you cannot generate a video file, say so honestly and provide the executable shot list/assets instead. The publishing caption belongs outside the video, not in narration or on-screen text.
 FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is English only before delivery. Remove any Persian/Farsi or bilingual subtitles.`;
-  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:hashtags.slice(0,5),sound,masterPrompt,promptVersion:5};
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:5};
 }
 
 export function buildMasterPrompt(idea, trend, lang = 'fa') {
@@ -235,10 +282,13 @@ ${idea.script.map((b, i) => `${i + 1}. ${b.t}\nتصویر و حرکت: ${b.visua
 export function fallbackIdea(t, lang = 'fa') {
   const locale = LOCALES[lang] || LOCALES.fa, story = storyFor(t.topic);
   const title = locale.titles[story];
+  const hashtags = enforceHashtags([`#${t.topic}`, ...locale.tags], t.topic);
+  const baseCaption = `${locale.intro}${title}.\n${locale.question} 👇`;
+  const caption = ensureCaptionLength(baseCaption, hashtags, lang);
   return { topic: t.topic, lang, title, duration: 12, hook: locale.voices[0],
     script: STORIES[story].map((visual, i) => ({ t: ['0–2', '2–4', '4–7', '7–10', '10–12'][i], visual, voice: locale.voices[i], text: locale.texts[i] })),
-    caption: `${locale.intro}${title}.\n${locale.question} 👇`,
-    hashtags: enforceHashtags([`#${t.topic}`, ...locale.tags], t.topic),
+    caption,
+    hashtags,
     sound: 'گویندگی اورجینال + افکت‌های کوتاه کلیک/کاغذ/حرکت ساختهٔ خودت، بدون موزیک دارای کپی‌رایت.', why: why(t), source: 'template' };
 }
 // Reject obviously wrong-language AI captions; a safe localized storyboard is preferable.
@@ -260,10 +310,12 @@ export function normalizeIdea(raw, trend, lang = 'fa') {
     end = next; return true;
   }) && end === duration;
   if (!valid || !clean(raw.title) || !clean(raw.hook) || !clean(raw.caption) || !matchesLanguage(raw.caption, lang) || ![raw.title,raw.hook,...script.flatMap(b=>[b.voice,b.text])].every(text=>matchesLanguage(text,lang))) return fallback;
-  let caption = clean(raw.caption, 2200);
+  let caption = clean(raw.caption, 2500);
   if (!/[?؟]/.test(caption)) caption += `\n${LOCALES[lang].question}`;
+  const hashtags = enforceHashtags(raw.hashtags, trend.topic);
+  caption = ensureCaptionLength(caption, hashtags, lang);
   return { topic: trend.topic, lang, title: Array.from(clean(raw.title)).slice(0, 59).join(''), duration, hook: clean(raw.hook, 300), script, caption,
-    hashtags: enforceHashtags(raw.hashtags, trend.topic), sound: fallback.sound, why: why(trend), source: 'gemini' };
+    hashtags, sound: fallback.sound, why: why(trend), source: 'gemini' };
 }
 export function localizeIdeas(trends, selectedIdeas = [], selectedLang = 'fa') {
   return Object.fromEntries(LANGUAGES.map(lang => [lang, trends.map((t, i) => {
