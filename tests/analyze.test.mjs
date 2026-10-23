@@ -179,3 +179,12 @@ test('API emits v2 localized output and max five ideas with master prompts',asyn
   const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
   for(const lang of LANGUAGES)assert.equal(r.body.localizedIdeas[lang].length,r.body.trends.length);
 });
+
+test('golden minute is weighted median of actual publication minutes, not a random fixed number',()=>{
+  const videos=[{publishedAt:'2026-10-23T12:05:00Z',score:1,duration:12},{publishedAt:'2026-10-23T12:35:00Z',score:4,duration:12},{publishedAt:'2026-10-23T12:55:00Z',score:1,duration:12}];
+  const g=goldenTime(videos,'UTC');assert.equal(g.bestHour,12);assert.equal(g.bestMinute,35);assert.equal(g.minuteMethod,'weighted-median-publication');assert.ok(g.secondMinute>=0&&g.secondMinute<60);
+  const tehran=goldenTime(videos,'Asia/Tehran');assert.equal(tehran.bestHour,16);assert.equal(tehran.bestMinute,5);
+});
+test('minute conversion respects midnight and local day-of-week',()=>{
+  const g=goldenTime([{publishedAt:'2026-10-23T20:47:00Z',score:2,duration:12}],'Asia/Tehran');assert.equal(g.bestHour,0);assert.equal(g.bestMinute,17);assert.equal(g.topDays[0],6);
+});
