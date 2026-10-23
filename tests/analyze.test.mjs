@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import handler, { durationSeconds, normalizeKeyword, keywords, filterVideos, extractTrends, goldenTime, enforceHashtags, fallbackIdea, normalizeIdea, collectVideos, buildMasterPrompt, localizeIdeas, LANGUAGES } from '../api/analyze.js';
+import handler, { durationSeconds, normalizeKeyword, keywords, filterVideos, extractTrends, goldenTime, enforceHashtags, fallbackIdea, normalizeIdea, collectVideos, buildMasterPrompt, localizeIdeas, ensurePromptLength, PROMPT_MIN, PROMPT_MAX, CAPTION_MAX, LANGUAGES } from '../api/analyze.js';
 const NOW = Date.parse('2026-10-23T12:00:00Z');
 const id = n => `v${String(n).padStart(10,'0')}`;
 function video(n, overrides={}) {
@@ -213,5 +213,45 @@ test('English caption cannot hide Persian title, hook, narration or overlays in 
   for(const key of ['voice','text']){
     const mixed=structuredClone(good);mixed.script[2][key]='متن فارسی';
     assert.equal(normalizeIdea(mixed,trend,'en').source,'template');
+  }
+});
+test('master prompt length is strictly 2400-2450 chars across all languages, topics, CRLF and Gemini extremes while caption+hashtags stays under 100',()=>{
+  const topics=['funny','food','craft','tech','sport','pet','travel','comedy','fun','minivlog','طنز','ai','a'.repeat(64)];
+  for(const lang of LANGUAGES){
+    for(const topic of topics){
+      const trend={topic,videoCount:4,channelCount:4,recentCount:2,medianVph:150};
+      const idea=localizeIdeas([trend])[lang][0];
+      assert.ok(idea.masterPrompt.length>=PROMPT_MIN&&idea.masterPrompt.length<=PROMPT_MAX,`${lang}/${topic} UTF-16=${idea.masterPrompt.length}`);
+      const codePoints=[...idea.masterPrompt].length;
+      assert.ok(codePoints>=PROMPT_MIN&&codePoints<=PROMPT_MAX,`${lang}/${topic} codePoints=${codePoints}`);
+      const crlf=idea.masterPrompt.replace(/\n/g,'\r\n').length;
+      assert.ok(crlf>=PROMPT_MIN&&crlf<=PROMPT_MAX,`${lang}/${topic} CRLF=${crlf}`);
+      assert.ok(`${idea.caption}\n\n${idea.hashtags.join(' ')}`.length<=CAPTION_MAX);
+      for(const beat of idea.script)for(const key of ['visual','voice','text'])assert.ok(idea.masterPrompt.includes(beat[key]));
+    }
+    const baseTrend={topic:'funny',videoCount:3,channelCount:3,recentCount:1,medianVph:50};
+    const sample=fallbackIdea(baseTrend,lang);
+    const hugeRaw={
+      ...sample,
+      duration:15,
+      script:Array.from({length:8},(_,i)=>({
+        t:['0–2','2–4','4–6','6–8','8–10','10–12','12–14','14–15'][i],
+        visual:(lang==='fa'||lang==='ar'?'نمای نزدیک استودیویی با حرکت آرام دوربین روی سوژه اصلی ':'Detailed studio shot with smooth controlled camera motion ').repeat(7).trim(),
+        voice:sample.script[0].voice,
+        text:sample.script[0].text
+      }))
+    };
+    const normalizedHuge=normalizeIdea(hugeRaw,baseTrend,lang);
+    const hugeLocalized=localizeIdeas([baseTrend],[normalizedHuge],lang)[lang][0];
+    assert.equal(hugeLocalized.source,'gemini');
+    assert.ok(hugeLocalized.masterPrompt.length>=PROMPT_MIN&&hugeLocalized.masterPrompt.length<=PROMPT_MAX);
+    assert.ok([...hugeLocalized.masterPrompt].length>=PROMPT_MIN&&[...hugeLocalized.masterPrompt].length<=PROMPT_MAX);
+    for(const beat of hugeLocalized.script)for(const key of ['visual','voice','text'])assert.ok(hugeLocalized.masterPrompt.includes(beat[key]));
+  }
+  for(const n of [0,50,1500,2399,2400,2425,2450,3400]){
+    for(const lang of ['en','fa']){
+      const out=ensurePromptLength('x'.repeat(n),lang);
+      assert.ok(out.length>=PROMPT_MIN&&out.length<=PROMPT_MAX);
+    }
   }
 });
