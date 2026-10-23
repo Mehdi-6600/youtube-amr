@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {localizeIdeas,englishProductionIdea} from '../api/analyze.js';
+import {localizeIdeas,englishProductionIdea,ensurePromptLength,PROMPT_MIN,PROMPT_MAX,CAPTION_MAX} from '../api/analyze.js';
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const context=vm.createContext({Intl,Date,console});new vm.Script(script).runInContext(context);
@@ -38,7 +38,7 @@ test('card has exactly two copyable boxes and safe evidence links',()=>{
   assert.ok(!rendered.includes('href="javascript:'));assert.ok(!rendered.includes('<img'));assert.ok(!rendered.includes('<script>'));assert.ok(rendered.includes('&lt;script&gt;'));assert.ok(rendered.includes('lang="en"'));assert.ok(rendered.includes('dir="ltr"'));
 });
 test('main UI has no legacy chart or long policy blocks',()=>{
-  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'5'"));
+  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'6'"));
 });
 
 const golden={timezone:'Asia/Tehran',bestHour:18,bestMinute:37,secondHour:10,secondMinute:12,topDays:[5,6,0],histogram:Array(24).fill(1)};
@@ -135,4 +135,21 @@ test('old cached Persian directions are upgraded locally for English display and
   assert.equal(run('getIdeas(old,"en")[0].masterPrompt'),upgraded.masterPrompt);
   const markup=run('renderCard')(upgraded,trend,0,'en');
   assert.match(markup,/class="content prompt"[^>]*dir="ltr"[^>]*lang="en"/);
+});
+test('legacy over-3000-char stored prompts across ALL languages upgrade locally to 2400-2450 chars on load and copy',()=>{
+  assert.equal(run('ensurePromptLength.toString()'),ensurePromptLength.toString().replace(/^export /,''));
+  const stale=structuredClone(fixture);
+  for(const lang of ['fa','en','ar','tr','de']){
+    stale.localizedIdeas[lang][0].masterPrompt='X'.repeat(3363);
+    stale.localizedIdeas[lang][0].caption='C'.repeat(2435);
+  }
+  context.stale=stale;
+  for(const lang of ['fa','en','ar','tr','de']){
+    context.lang=lang;
+    const idea=run('getIdeas(stale,lang)[0]');
+    assert.ok(idea.masterPrompt.length>=PROMPT_MIN&&idea.masterPrompt.length<=PROMPT_MAX,`${lang} upgraded len=${idea.masterPrompt.length}`);
+    assert.ok(run('captionText(idea)').length<=CAPTION_MAX,`${lang} caption+tags len=${run('captionText(idea)').length}`);
+    const card=run('renderCard')(idea,trend,0,lang);
+    assert.match(card,/حرف<\/small>/);
+  }
 });

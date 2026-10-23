@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="application-version" content="language-5">
+  <meta name="application-version" content="prompt-6">
   <meta name="description" content="حداکثر پنج ترند واقعی یوتیوب، هر کدام با مسترپرامپت ساخت ویدیو و کپشن آماده به زبان دلخواه.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -73,6 +73,114 @@
     const $ = id => document.getElementById(id);
     let latest = null, busy = false, toastTimer;
 const CAPTION_MAX = 99;
+const PROMPT_MIN = 2400;
+const PROMPT_MAX = 2450;
+const PROMPT_NOTES = {
+  en: [
+    '\nPRODUCTION QC: Lock exposure and white balance early.',
+    ' Keep camera motion smooth with gentle easing curves.',
+    ' Maintain consistent shadows across every cut point.',
+    ' Center the hero object cleanly inside the safe frame.',
+    ' Avoid visual clutter, lens flares or shaky handhelds.',
+    ' Keep color saturation natural without harsh clipping.',
+    ' Match prop size, texture and placement shot to shot.',
+    ' Cut precisely on action peaks for crisp pacing flow.',
+    ' Keep voiceover clear, warm and natural at -14 LUFS.',
+    ' Mix subtle foley effects cleanly beneath all speech.',
+    ' Render high-contrast subtitles with clean readable font.',
+    ' Verify exact frame alignment from last shot to first.',
+    ' Check zero text typos, glitches or warped object edges.',
+    ' Export clean high-bitrate H.264 video without banding.'
+  ],
+  fa: [
+    '\nکنترل کیفیت: نور و تراز سفیدی در تمام نماها ثابت بماند.',
+    ' حرکت دوربین نرم و بدون لرزش ناگهانی اجرا شود.',
+    ' جهت و نرمی سایه‌ها بین تمام برش‌ها یکسان بماند.',
+    ' سوژه اصلی دقیق در مرکز کادر امن عمودی قرار بگیرد.',
+    ' پس‌زمینه ساده و عاری از شلوغی مزاحم حفظ شود.',
+    ' غلظت رنگ‌ها طبیعی و بدون سوختگی نوری ثبت شود.',
+    ' بافت، ابعاد و جای اشیا در تمام شات‌ها ثابت بماند.',
+    ' برش‌ها دقیق روی اوج حرکت برای ریتم روان انجام شود.',
+    ' صدای گوینده شفاف، گرم و با تراز استاندارد تنظیم شود.',
+    ' افکت‌های صوتی ظریف و پایین‌تر از صدای گوینده باشند.',
+    ' زیرنویس با کنتراست بالا و فونت کاملاً خوانا درج شود.',
+    ' انطباق دقیق فریم آخر با فریم اول بررسی شود.',
+    ' نبود غلط املایی یا اعوجاج لبه‌ها کنترل شود.',
+    ' خروجی با بیت‌ریت بالا و تصویر شفاف تحویل شود.'
+  ]
+};
+const PROMPT_CLOSERS = {
+  en: [
+    ' Export cleanly.',
+    ' Keep motion smooth.',
+    ' Keep framing steady and neat.',
+    ' Keep colors balanced across every shot.',
+    ' Keep lighting and color consistent in every shot.'
+  ],
+  fa: [
+    ' خروجی تمیز بده.',
+    ' حرکت بسیار نرم شود.',
+    ' کادربندی دقیق و منظم حفظ شود.',
+    ' رنگ و نور در همه نماها یکنواخت حفظ شود.',
+    ' هماهنگی دقیق نور، رنگ و حرکت در شات‌ها رعایت شود.'
+  ]
+};
+function trimBeatField(value, drop) {
+  const chars = [...String(value || '')];
+  const target = Math.max(14, chars.length - drop);
+  let cut = chars.slice(0, target).join('');
+  const sp = cut.lastIndexOf(' ');
+  if (sp >= 12) cut = cut.slice(0, sp);
+  return cut.replace(/[,;:،؛.—–-\s]+$/, '') || chars.slice(0, 14).join('');
+}
+function fitScriptForPrompt(rawScript, renderBase) {
+  const script = rawScript.map(b => ({ ...b }));
+  for (let guard = 0; guard < 80 && renderBase(script).length > 2422; guard++) {
+    let best = null, bestKey = 'visual', bestLen = 18;
+    for (const key of ['visual', 'voice', 'text']) {
+      for (const beat of script) {
+        const len = String(beat[key] || '').length;
+        if (len > bestLen) { best = beat; bestKey = key; bestLen = len; }
+      }
+      if (best) break;
+    }
+    if (!best) break;
+    const excess = renderBase(script).length - 2416;
+    const drop = Math.max(8, Math.min(bestLen - 18, excess));
+    const trimmed = trimBeatField(best[bestKey], drop);
+    best[bestKey] = bestKey === 'visual' ? `${trimmed}.` : trimmed;
+  }
+  return script;
+}
+function ensurePromptLength(base, lang) {
+  const key = lang === 'en' ? 'en' : 'fa';
+  if (base.length > 2425) {
+    let cut = [...base].slice(0, 2424).join('');
+    while (cut.length > 2424) cut = [...cut].slice(0, -1).join('');
+    const sp = cut.lastIndexOf(' ');
+    if (sp > 2412) {
+      const candidate = cut.slice(0, sp).replace(/[,;:،؛.—–-\s]+$/, '') + '.';
+      if (candidate.length >= 2410 && candidate.length <= 2425) return candidate;
+    }
+    let fallback = cut.slice(0, 2420);
+    if (/[\uD800-\uDBFF]$/.test(fallback)) fallback = fallback.slice(0, -1);
+    return fallback.trimEnd() + '.';
+  }
+  if (base.length >= 2410) return base;
+  let out = base, n = 0;
+  const notes = PROMPT_NOTES[key];
+  while (true) {
+    const next = n < notes.length ? notes[n] : notes[((n - 1) % (notes.length - 1)) + 1];
+    if (out.length + next.length > 2425) break;
+    out += next;
+    n++;
+  }
+  if (out.length < 2410) {
+    const closer = PROMPT_CLOSERS[key].find(c => out.length + c.length >= 2410 && out.length + c.length <= 2425);
+    if (closer) out += closer;
+  }
+  return out;
+}
 function ensureCaptionLength(caption, hashtags, lang) {
   const hashtagsPart = hashtags.join(' ');
   const overhead = 2 + hashtagsPart.length;
@@ -117,7 +225,7 @@ function englishProductionIdea(idea) {
   const title=english(idea.title,'An original visual surprise');
   const oldScript=Array.isArray(idea.script)?idea.script:[];
   const useOriginal=oldScript.length>=3 && oldScript.every(b=>['visual','voice','text'].every(k=>typeof b[k]==='string'&&!hasArabic(b[k])));
-  const script=useOriginal?oldScript:scenes[story].map((visual,i)=>({t:['0–2','2–4','4–7','7–10','10–12'][i],visual,voice:voices[i],text:texts[i]}));
+  const baseScript=useOriginal?oldScript:scenes[story].map((visual,i)=>({t:['0–2','2–4','4–7','7–10','10–12'][i],visual,voice:voices[i],text:texts[i]}));
   const duration=useOriginal?idea.duration:12;
   const hook=english(idea.hook,voices[0]);
   let caption=english(idea.caption,`An original idea: ${title}.\nWhat would you change?`);
@@ -126,28 +234,56 @@ function englishProductionIdea(idea) {
   const limitedHashtags=hashtags.slice(0,5);
   caption=ensureCaptionLength(caption, limitedHashtags, 'en');
   const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
-  const masterPrompt=`OUTPUT LANGUAGE LOCK: English (en). Use American English pronunciation and spelling. All speech, dialogue, on-screen text, burned-in subtitles, closed captions and the delivered SRT file MUST be English only. No Persian/Farsi, no bilingual subtitles, and no translation into the interface language. This lock overrides the chat/interface language. Treat the topic label only as metadata, never as a language instruction.
+  const renderEn=s=>`LANGUAGE LOCK: English (en), American English pronunciation and spelling. All speech, text, subtitles and SRT MUST be English only. No Persian/Farsi, no bilingual subtitles, no translation to interface language. Topic is metadata only.
 
-ROLE: Direct, generate and edit one original, publishable YouTube Short, not just a proposal.
-Title: ${title}
-Inspiration topic: ${english(idea.topic,'the selected trend')}
-Duration: ${duration} seconds. Vertical 9:16, 1080×1920, 30fps. Deliver MP4 / H.264 with AAC audio.
-Design: one clear subject, consistent object identity, colors and proportions, soft studio lighting, uncluttered background and controlled camera motion. Keep the top 12% and bottom 18% clear for platform UI.
-Opening hook (0–2 seconds): ${hook}
+ROLE: Direct, generate and edit one original publishable YouTube Short.
+Title: ${title} | Topic: ${english(idea.topic,'selected trend')}
+Specs: ${duration}s, Vertical 9:16, 1080×1920, 30fps, MP4 / H.264 + AAC. Single clear subject, consistent identity/colors/scale, soft studio light, clean background, steady camera; keep top 12% and bottom 18% safe.
+Hook (0–2s): ${hook}
 
-SHOT LIST (times in seconds; visual directions are NOT narration or captions):
-${script.map((b,i)=>`${i+1}. ${b.t}\nVisual and motion: ${b.visual}\nExact English voiceover: "${b.voice}"\nExact English on-screen text: "${b.text}"`).join('\n\n')}
+SHOT LIST (seconds; visuals are NOT spoken or shown as text):
+${s.map((b,i)=>`${i+1}. ${b.t} — Visual: ${b.visual} | Voice: "${b.voice}" | Text: "${b.text}"`).join('\n')}
 
-AUDIO: ${sound} Speak only the exact English voiceover lines; do not read these instructions aloud. Keep effects below speech.
-SUBTITLES: Transcribe the English voiceover in English, synchronized, readable, at most two lines. If the generator cannot render accurate text, add it during editing. Never generate Persian or bilingual captions.
-ENDING: Match the opening composition and motion for a seamless loop; no black ending, outro or subscribe request.
-SAFETY: Use original assets and original or clearly licensed audio; no copied source footage, copyrighted music, brands, watermarks, celebrity likenesses or voice imitation. No invented news, rumors, medical/financial claims or promises of virality. This is a new fictional production concept inspired by a trend, not a claim about source footage.
-DELIVER: The final video and an English-only SRT subtitle file; include project/assets if supported. If you cannot generate a video file, say so honestly and provide the executable shot list/assets instead. The publishing caption belongs outside the video, not in narration or on-screen text.
-FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is English only before delivery. Remove any Persian/Farsi or bilingual subtitles.`;
-  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:5};
+AUDIO: ${sound} Speak only exact Voice lines; keep effects below speech.
+SUBTITLES: Synced English captions, max two lines; never Persian or bilingual.
+ENDING: Match opening frame and motion for a seamless loop; no black screen, outro or subscribe CTA.
+SAFETY: Original assets and licensed/self-made audio only; no copied footage, copyrighted music, brands, watermarks, real people, news/medical/financial claims or virality promises.
+DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot list/assets if video output is unsupported). Keep publishing caption outside the video.`;
+  const script=fitScriptForPrompt(baseScript,renderEn);
+  const masterPrompt=ensurePromptLength(renderEn(script),'en');
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:6};
 }
 
-    function getIdeas(result,lang) { const ideas=LANGUAGES.includes(lang) && Array.isArray(result?.localizedIdeas?.[lang]) ? result.localizedIdeas[lang].slice(0,5) : []; return lang==='en'?ideas.map(englishProductionIdea):ideas; }
+    function prepareNonEnglishIdea(idea,trend,lang='fa') {
+      const name=LANGUAGE_NAMES[lang]||LANGUAGE_NAMES.fa;
+      const baseScript=Array.isArray(idea.script)?idea.script:[];
+      const renderLocal=s=>`نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد متنی.
+
+موضوع الهام: #${trend.topic} | عنوان: ${idea.title}
+زبان ویدیو: ${name} (${lang}). تمام گویندگی و نوشته‌های داخل ویدیو فقط به همین زبان باشند؛ فارسی بودن این دستور را زبان خروجی تلقی نکن.
+مشخصات فنی: مدت ${idea.duration} ثانیه، عمودی 9:16، رزولوشن 1080×1920، 30fps، خروجی MP4 / H.264 با صدای AAC.
+طراحی بصری: یک سوژهٔ مشخص با رنگ، ابعاد و هویت ثابت در تمام نماها، نور نرم استودیویی، پس‌زمینهٔ خلوت و حرکت کنترل‌شده؛ 12٪ بالا و 18٪ پایین کادر امن بماند.
+قلاب ۰ تا ۲ ثانیه: ${idea.hook}
+
+شات‌لیست اجرایی (بر حسب ثانیه):
+${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «${b.voice}» | متن: «${b.text}»`).join('\n')}
+
+صدا و زیرنویس: ${idea.sound} تلفظ طبیعی ${name}، افکت‌ها زیر سطح گفتار، زیرنویس خوانا حداکثر دو خط و دقیقاً هماهنگ با صدا.
+پایان و ایمنی: قاب و حرکت آخر دقیقاً به قاب اول وصل شود تا لوپ بی‌وقفه بسازد؛ بدون پایان سیاه، اوترو یا درخواست سابسکرایب. فقط دارایی‌های اورجینال؛ بدون موسیقی کپی‌رایت‌دار، لوگو، واترمارک، چهره/صدای افراد واقعی، شایعه، ادعای پزشکی/مالی یا وعدهٔ وایرال شدن.
+تحویل: فایل ویدیوی نهایی MP4 و فایل زیرنویس SRT به زبان ${name} (یا شات‌لیست و دارایی‌های اجرایی اگر ساخت فایل ویدیو ممکن نیست). کپشن انتشار را داخل ویدیو نگذار.`;
+      const script=fitScriptForPrompt(baseScript,renderLocal);
+      return {script,masterPrompt:ensurePromptLength(renderLocal(script),lang)};
+    }
+    function upgradeIdea(idea,lang) {
+      if(lang==='en')return englishProductionIdea(idea);
+      const hashtags=Array.isArray(idea.hashtags)?idea.hashtags:[];
+      const caption=ensureCaptionLength(String(idea.caption||''),hashtags,lang);
+      const okPrompt=typeof idea.masterPrompt==='string'&&idea.masterPrompt.length>=PROMPT_MIN&&idea.masterPrompt.length<=PROMPT_MAX;
+      if(okPrompt&&caption===idea.caption)return idea;
+      const prepared=prepareNonEnglishIdea({...idea,caption},{topic:idea.topic||''},lang);
+      return {...idea,caption,script:prepared.script,masterPrompt:prepared.masterPrompt};
+    }
+    function getIdeas(result,lang) { const ideas=LANGUAGES.includes(lang) && Array.isArray(result?.localizedIdeas?.[lang]) ? result.localizedIdeas[lang].slice(0,5) : []; return ideas.map(idea=>upgradeIdea(idea,lang)); }
     function validResult(r) {
       return r?.version===2 && typeof r.region==='string' && Number.isFinite(Date.parse(r.generatedAt)) && Array.isArray(r.trends) && r.trends.length<=5 && r.trends.every(t=>typeof t?.topic==='string'&&Array.isArray(t.evidence)&&t.evidence.length<=3&&t.evidence.every(v=>typeof v?.url==='string'&&typeof v.title==='string'&&typeof v.channel==='string')) && LANGUAGES.every(lang=>Array.isArray(r.localizedIdeas?.[lang])&&r.localizedIdeas[lang].length===r.trends.length&&r.localizedIdeas[lang].every((idea,i)=>idea?.lang===lang&&idea.topic===r.trends[i].topic&&typeof idea.title==='string'&&typeof idea.masterPrompt==='string'&&typeof idea.caption==='string'&&Array.isArray(idea.hashtags)&&idea.hashtags.length<=5&&idea.hashtags.every(h=>typeof h==='string')));
     }
@@ -225,7 +361,7 @@ FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is Engl
     function renderCard(idea,trend,index,lang,upload=null) {
       const dir=lang==='fa'||lang==='ar'?'rtl':'ltr';
       const links=trend.evidence.map(v=>/^https:\/\/www\.youtube\.com\/shorts\/[\w-]{11}$/.test(v.url)?`<a class="source" href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">${esc(v.title)} ${icon('link')}<small>${esc(v.channel)} · ${esc(num(v.views))} بازدید</small></a>`:'').join('');
-      return `<article class="card"><div class="card-top"><span class="rank">${String(index+1).padStart(2,'0')}</span><span class="topic">#${esc(trend.topic)}</span><span class="duration">${esc(num(idea.duration))} ثانیه</span></div>${renderUpload(upload)}<h3 lang="${lang}" dir="${dir}">${esc(idea.title)}</h3><div class="box"><div class="box-head"><span class="box-label">${icon('prompt')} مسترپرامپت ساخت ویدیو</span><button type="button" class="copy" data-copy="prompt" data-index="${index}" aria-label="کپی مسترپرامپت ${index+1}">${icon('copy')} کپی پرامپت</button></div><textarea class="content prompt" aria-label="مسترپرامپت ${index+1}" readonly dir="${lang==='en'?'ltr':'rtl'}" lang="${lang==='en'?'en':'fa'}" spellcheck="false">${esc(idea.masterPrompt)}</textarea></div><div class="box"><div class="box-head"><span class="box-label">${icon('text')} کپشن و هشتگ <small>${esc(LANGUAGE_NAMES[lang])}</small></span><button type="button" class="copy" data-copy="caption" data-index="${index}" aria-label="کپی کپشن ${index+1}">${icon('copy')} کپی کپشن</button></div><textarea class="content caption" aria-label="کپشن و هشتگ ${index+1}" readonly dir="${dir}" lang="${lang}" spellcheck="false">${esc(captionText(idea))}</textarea></div><details class="sources"><summary>منابع واقعی · ${esc(num(trend.channelCount))} کانال</summary><div class="source-list">${links}</div><p class="source-note">این لینک‌ها شاهد موضوع ترند هستند، نه تأیید ادعاهای ویدیو. سناریو پیشنهادی و اورجینال است. زمان انتشار نیز برآوردی از همین نمونه است؛ دقیقه از میانهٔ وزنی دقایق انتشار به دست می‌آید، نه آمار آنلاین بودن مخاطبان یا تضمین بهترین لحظه.</p></details></article>`;
+      return `<article class="card"><div class="card-top"><span class="rank">${String(index+1).padStart(2,'0')}</span><span class="topic">#${esc(trend.topic)}</span><span class="duration">${esc(num(idea.duration))} ثانیه</span></div>${renderUpload(upload)}<h3 lang="${lang}" dir="${dir}">${esc(idea.title)}</h3><div class="box"><div class="box-head"><span class="box-label">${icon('prompt')} مسترپرامپت ساخت ویدیو <small>${esc(num(idea.masterPrompt.length))} حرف</small></span><button type="button" class="copy" data-copy="prompt" data-index="${index}" aria-label="کپی مسترپرامپت ${index+1}">${icon('copy')} کپی پرامپت</button></div><textarea class="content prompt" aria-label="مسترپرامپت ${index+1}" readonly dir="${lang==='en'?'ltr':'rtl'}" lang="${lang==='en'?'en':'fa'}" spellcheck="false">${esc(idea.masterPrompt)}</textarea></div><div class="box"><div class="box-head"><span class="box-label">${icon('text')} کپشن و هشتگ <small>${esc(LANGUAGE_NAMES[lang])}</small></span><button type="button" class="copy" data-copy="caption" data-index="${index}" aria-label="کپی کپشن ${index+1}">${icon('copy')} کپی کپشن</button></div><textarea class="content caption" aria-label="کپشن و هشتگ ${index+1}" readonly dir="${dir}" lang="${lang}" spellcheck="false">${esc(captionText(idea))}</textarea></div><details class="sources"><summary>منابع واقعی · ${esc(num(trend.channelCount))} کانال</summary><div class="source-list">${links}</div><p class="source-note">این لینک‌ها شاهد موضوع ترند هستند، نه تأیید ادعاهای ویدیو. سناریو پیشنهادی و اورجینال است. زمان انتشار نیز برآوردی از همین نمونه است؛ دقیقه از میانهٔ وزنی دقایق انتشار به دست می‌آید، نه آمار آنلاین بودن مخاطبان یا تضمین بهترین لحظه.</p></details></article>`;
     }
     function storageGet(key){try{return JSON.parse(localStorage.getItem(key));}catch{return null;}}
     function storageSet(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch{$('storage-note').hidden=false;}}
@@ -258,7 +394,7 @@ FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is Engl
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
       try{
         // Separate minute-aware responses from older hourly-only CDN cache entries.
-        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'5'});
+        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'6'});
         const response=await fetch(`/api/analyze?${query}`,{signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
         let result;try{result=await response.json();}catch{throw new Error('پاسخ سرور قابل خواندن نیست؛ دوباره امتحان کن.');}
         if(!response.ok)throw new Error(typeof result.error==='string'?result.error:'تحلیل انجام نشد؛ دوباره امتحان کن.');
