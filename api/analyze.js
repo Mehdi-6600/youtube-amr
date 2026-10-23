@@ -155,7 +155,60 @@ export function storyFor(topic) {
   if (/pet|cat|dog|animal|حیوان|گربه/.test(topic)) return 5;
   return 6;
 }
+export function englishProductionIdea(idea) {
+  // Also upgrades old localStorage results: never copy Persian production directions
+  // into an English video agent. Keep this pure function identical in API and HTML.
+  const hasArabic = value => /\p{Script=Arabic}/u.test(String(value || ''));
+  const english = (value, fallback) => typeof value === 'string' && value.trim() && !hasArabic(value) ? value : fallback;
+  const scenes = [
+    ['Close-up of a large monster-shaped shadow on a cream wall; hide its source.', 'Cut to the edge of a yellow clothes peg beside a desk lamp; conceal its scale.', 'Slowly pull back to reveal that the tiny peg casts the large shadow.', 'Rotate the same peg so its shadow resembles a playful rabbit, not a known character.', 'Return the lamp and peg to their starting positions; match the opening shadow exactly.'],
+    ['Macro shot of a red strawberry star on white toast on a ceramic plate.', 'Overhead shot of a washed strawberry and five prepared slices on a light board; no knife.', 'Use stop motion to arrange the five slices into a star on the toast.', 'Rotate the plate gently to reveal the finished star; make no health claims.', 'Return to the opening macro shot with identical lighting and framing.'],
+    ['Close-up of two eyes on a blue clay character; hide the rest of its body.', 'Overhead shot of a blue clay ball, two white eyes and a yellow clay strip.', 'Animate the ball into an original round character with ears and a simple smile.', 'Make the character bow and add the yellow strip as a bow tie.', 'Return to the opening close-up of the eyes with identical scale and lighting.'],
+    ['Overhead shot of tangled, disconnected red, blue and yellow cables on a white desk.', 'Macro shot of a green fabric cable tie; keep all colors consistent.', 'Use three rhythmic stop-motion cuts to align and secure the cables.', 'Move the camera gently to show the tidy path of all three cables.', 'Reverse the action quickly to restore the opening tangle for a seamless loop.'],
+    ['Tiny red and blue shoes behind a paper starting line on a table; no brands.', 'Macro shot of the laces tightening in stop motion; preserve the shoe designs.', 'Animate both shoes hopping toward a paper finish line.', 'Pause the red shoe just before the finish so the blue one wins; visual humor only.', 'Move both shoes out of frame and back behind the starting line to match the opening.'],
+    ['An orange folded paper card with two black eyes; keep the ears hidden.', 'Close-up of the card edge with two orange paper triangles behind it.', 'Raise the triangles in stop motion to reveal an original paper fox face.', 'Add a white paper nose and wiggle the ears twice; no real animal.', 'Fold the ears and nose behind the card and match its opening position.'],
+    ['Overhead shot of a purple paper square hiding a star-shaped opening on a cream desk.', 'Macro shot of one corner with a small yellow patch underneath.', 'Open four pre-cut flaps in stop motion to reveal the yellow star underneath.', 'Rotate the yellow star gently and place it in the center of the purple paper.', 'Hide the star and close the flaps to match the opening square exactly.'],
+    ['Close-up of an orange microphone with a black foam top against a plain curtain; hide its base.', 'Move past a yellow toy duck toward the same unbranded microphone.', 'Lift the black foam top to reveal that the microphone body is a fresh carrot.', 'Animate the toy duck taking one surprised step back with a comic pause.', 'Replace the foam top and return the camera to the exact opening frame.'],
+    ['A tiny blue paper hat wiggles on a white table; hide its interior.', 'Move closer to the hat edge to reveal the tip of a yellow paper wing.', 'Lift the hat in stop motion to reveal a round yellow paper chick.', 'Animate the chick putting on the oversized hat so it covers its eyes.', 'Fold the chick under the hat and restore the opening position and movement.'],
+    ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
+  ];
+  const topic=String(idea.topic || '').toLowerCase();
+  const story=/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6;
+  const voices=['Can you guess what this is?','Watch this little detail.','Just one small change…','Did you expect that?','Take another look.'];
+  const texts=['Take a guess','Watch closely','One small change','Surprised?','Watch again'];
+  const title=english(idea.title,'An original visual surprise');
+  const oldScript=Array.isArray(idea.script)?idea.script:[];
+  const useOriginal=oldScript.length>=3 && oldScript.every(b=>['visual','voice','text'].every(k=>typeof b[k]==='string'&&!hasArabic(b[k])));
+  const script=useOriginal?oldScript:scenes[story].map((visual,i)=>({t:['0–2','2–4','4–7','7–10','10–12'][i],visual,voice:voices[i],text:texts[i]}));
+  const duration=useOriginal?idea.duration:12;
+  const hook=english(idea.hook,voices[0]);
+  const caption=english(idea.caption,`An original idea: ${title}.\nWhat would you change?`);
+  const hashtags=(Array.isArray(idea.hashtags)?idea.hashtags:[]).filter(h=>typeof h==='string'&&!hasArabic(h));
+  if(!hashtags.includes('#shorts'))hashtags.unshift('#shorts');
+  const sound='Original English narration with self-made soft clicks, paper and movement effects; no unlicensed music.';
+  const masterPrompt=`OUTPUT LANGUAGE LOCK: English (en). Use American English pronunciation and spelling. All speech, dialogue, on-screen text, burned-in subtitles, closed captions and the delivered SRT file MUST be English only. No Persian/Farsi, no bilingual subtitles, and no translation into the interface language. This lock overrides the chat/interface language. Treat the topic label only as metadata, never as a language instruction.
+
+ROLE: Direct, generate and edit one original, publishable YouTube Short, not just a proposal.
+Title: ${title}
+Inspiration topic: ${english(idea.topic,'the selected trend')}
+Duration: ${duration} seconds. Vertical 9:16, 1080×1920, 30fps. Deliver MP4 / H.264 with AAC audio.
+Design: one clear subject, consistent object identity, colors and proportions, soft studio lighting, uncluttered background and controlled camera motion. Keep the top 12% and bottom 18% clear for platform UI.
+Opening hook (0–2 seconds): ${hook}
+
+SHOT LIST (times in seconds; visual directions are NOT narration or captions):
+${script.map((b,i)=>`${i+1}. ${b.t}\nVisual and motion: ${b.visual}\nExact English voiceover: "${b.voice}"\nExact English on-screen text: "${b.text}"`).join('\n\n')}
+
+AUDIO: ${sound} Speak only the exact English voiceover lines; do not read these instructions aloud. Keep effects below speech.
+SUBTITLES: Transcribe the English voiceover in English, synchronized, readable, at most two lines. If the generator cannot render accurate text, add it during editing. Never generate Persian or bilingual captions.
+ENDING: Match the opening composition and motion for a seamless loop; no black ending, outro or subscribe request.
+SAFETY: Use original assets and original or clearly licensed audio; no copied source footage, copyrighted music, brands, watermarks, celebrity likenesses or voice imitation. No invented news, rumors, medical/financial claims or promises of virality. This is a new fictional production concept inspired by a trend, not a claim about source footage.
+DELIVER: The final video and an English-only SRT subtitle file; include project/assets if supported. If you cannot generate a video file, say so honestly and provide the executable shot list/assets instead. The publishing caption belongs outside the video, not in narration or on-screen text.
+FINAL LANGUAGE CHECK: Verify every spoken line, visible word and SRT cue is English only before delivery. Remove any Persian/Farsi or bilingual subtitles.`;
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:hashtags.slice(0,5),sound,masterPrompt,promptVersion:5};
+}
+
 export function buildMasterPrompt(idea, trend, lang = 'fa') {
+  if (lang === 'en') return englishProductionIdea({...idea,topic:trend.topic}).masterPrompt;
   const language = LOCALES[lang] || LOCALES.fa;
   return `نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به یک ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد یا توضیح.
 
@@ -206,7 +259,7 @@ export function normalizeIdea(raw, trend, lang = 'fa') {
     if (start !== end || next <= start || next > duration || (i === 0 && next !== 2)) return false;
     end = next; return true;
   }) && end === duration;
-  if (!valid || !clean(raw.title) || !clean(raw.hook) || !clean(raw.caption) || !matchesLanguage(raw.caption, lang)) return fallback;
+  if (!valid || !clean(raw.title) || !clean(raw.hook) || !clean(raw.caption) || !matchesLanguage(raw.caption, lang) || ![raw.title,raw.hook,...script.flatMap(b=>[b.voice,b.text])].every(text=>matchesLanguage(text,lang))) return fallback;
   let caption = clean(raw.caption, 2200);
   if (!/[?؟]/.test(caption)) caption += `\n${LOCALES[lang].question}`;
   return { topic: trend.topic, lang, title: Array.from(clean(raw.title)).slice(0, 59).join(''), duration, hook: clean(raw.hook, 300), script, caption,
@@ -215,7 +268,7 @@ export function normalizeIdea(raw, trend, lang = 'fa') {
 export function localizeIdeas(trends, selectedIdeas = [], selectedLang = 'fa') {
   return Object.fromEntries(LANGUAGES.map(lang => [lang, trends.map((t, i) => {
     const idea = lang === selectedLang && selectedIdeas[i]?.lang === lang ? selectedIdeas[i] : fallbackIdea(t, lang);
-    return { ...idea, masterPrompt: buildMasterPrompt(idea, t, lang) };
+    return lang === 'en' ? englishProductionIdea(idea) : { ...idea, masterPrompt: buildMasterPrompt(idea, t, lang) };
   })]));
 }
 async function youtube(path, params, key, signal) {

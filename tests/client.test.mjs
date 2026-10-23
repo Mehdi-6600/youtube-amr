@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
-import {localizeIdeas} from '../api/analyze.js';
+import {localizeIdeas,englishProductionIdea} from '../api/analyze.js';
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const context=vm.createContext({Intl,Date,console});new vm.Script(script).runInContext(context);
@@ -38,7 +38,7 @@ test('card has exactly two copyable boxes and safe evidence links',()=>{
   assert.ok(!rendered.includes('href="javascript:'));assert.ok(!rendered.includes('<img'));assert.ok(!rendered.includes('<script>'));assert.ok(rendered.includes('&lt;script&gt;'));assert.ok(rendered.includes('lang="en"'));assert.ok(rendered.includes('dir="ltr"'));
 });
 test('main UI has no legacy chart or long policy blocks',()=>{
-  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'4'"));
+  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'5'"));
 });
 
 const golden={timezone:'Asia/Tehran',bestHour:18,bestMinute:37,secondHour:10,secondMinute:12,topDays:[5,6,0],histogram:Array(24).fill(1)};
@@ -114,4 +114,25 @@ test('HTML routes require cache revalidation without disabling API quota caching
   const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
   for(const path of ['/','/index.html'])assert.ok(config.headers.some(rule=>rule.source===path&&rule.headers.some(h=>h.key==='Cache-Control'&&h.value.includes('must-revalidate'))));
   assert.ok(!config.headers.some(rule=>rule.source==='/api/analyze'&&rule.headers.some(h=>h.key==='Cache-Control')));
+});
+
+
+test('API and inline English prompt upgrades stay identical without a new framework or request',()=>{
+  assert.equal(run('englishProductionIdea.toString()'),englishProductionIdea.toString());
+});
+test('old cached Persian directions are upgraded locally for English display and copying',()=>{
+  const old=structuredClone(fixture);
+  old.localizedIdeas.en[0].masterPrompt='این پرامپت قدیمی فارسی است';
+  old.localizedIdeas.en[0].script[0].visual='نمای نزدیک فارسی';
+  old.localizedIdeas.en[0].script[1].voice='گفتار فارسی';
+  old.localizedIdeas.en[0].script[2].text='زیرنویس فارسی';
+  context.old=old;
+  const upgraded=run('getIdeas(old,"en")[0]');
+  assert.doesNotMatch(upgraded.masterPrompt,/\p{Script=Arabic}/u);
+  assert.match(upgraded.masterPrompt,/English-only SRT/);
+  assert.equal(upgraded.caption,old.localizedIdeas.en[0].caption);
+  assert.equal(run('getIdeas(old,"fa")[0].masterPrompt'),old.localizedIdeas.fa[0].masterPrompt);
+  assert.equal(run('getIdeas(old,"en")[0].masterPrompt'),upgraded.masterPrompt);
+  const markup=run('renderCard')(upgraded,trend,0,'en');
+  assert.match(markup,/class="content prompt"[^>]*dir="ltr"[^>]*lang="en"/);
 });

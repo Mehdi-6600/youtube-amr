@@ -61,7 +61,7 @@ test('hashtag and fallback invariants',()=>{
   assert.equal(tags[0],'#shorts');assert.ok(tags.length<=5);assert.ok(tags.every(t=>!/[\s<>]/.test(t)));
   const i=fallbackIdea(t);assert.equal(i.duration,12);assert.equal(i.script.length,5);assert.equal(i.script[0].t,'0–2');assert.equal(i.script.at(-1).t,'10–12');assert.ok(i.caption.includes('؟'));
   assert.deepEqual(normalizeIdea({},t),i);
-  const ai=normalizeIdea({...i,title:'x'.repeat(100),duration:19,script:[{...i.script[0],t:'0–2'},{...i.script[1],t:'2–10'},{...i.script[4],t:'10–15'}]},t);
+  const ai=normalizeIdea({...i,title:'گ'.repeat(100),duration:19,script:[{...i.script[0],t:'0–2'},{...i.script[1],t:'2–10'},{...i.script[4],t:'10–15'}]},t);
   assert.equal(ai.duration,15);assert.equal(ai.title.length,59);assert.equal(ai.source,'gemini');
   assert.equal(normalizeIdea({...i,script:[...i.script.slice(1)]},t).source,'template');
 });
@@ -187,4 +187,31 @@ test('golden minute is weighted median of actual publication minutes, not a rand
 });
 test('minute conversion respects midnight and local day-of-week',()=>{
   const g=goldenTime([{publishedAt:'2026-10-23T20:47:00Z',score:2,duration:12}],'Asia/Tehran');assert.equal(g.bestHour,0);assert.equal(g.bestMinute,17);assert.equal(g.topDays[0],6);
+});
+
+
+test('English production packages contain English-only directions, voice, overlay text and SRT lock for every concept',()=>{
+  for(const topic of ['funny','food','craft','tech','sport','pet','travel','comedy','fun','minivlog','طنز']){
+    const trend={topic,videoCount:3,channelCount:3,recentCount:1,medianVph:20};
+    const idea=localizeIdeas([trend]).en[0];
+    assert.doesNotMatch(idea.masterPrompt,/\p{Script=Arabic}/u);
+    assert.match(idea.masterPrompt,/American English/);
+    assert.match(idea.masterPrompt,/SRT subtitle file/);
+    assert.match(idea.masterPrompt,/No Persian\/Farsi, no bilingual subtitles/);
+    for(const beat of idea.script) for(const key of ['visual','voice','text']){
+      assert.doesNotMatch(beat[key],/\p{Script=Arabic}/u);
+      assert.ok(idea.masterPrompt.includes(beat[key]));
+    }
+    assert.doesNotMatch(idea.caption+idea.hashtags.join(' '),/\p{Script=Arabic}/u);
+  }
+});
+test('English caption cannot hide Persian title, hook, narration or overlays in AI output',()=>{
+  const trend={topic:'funny',videoCount:3,channelCount:3,recentCount:1,medianVph:20};
+  const good=localizeIdeas([trend]).en[0];
+  assert.equal(normalizeIdea(good,trend,'en').source,'gemini');
+  for(const key of ['title','hook']) assert.equal(normalizeIdea({...good,[key]:'متن فارسی'},trend,'en').source,'template');
+  for(const key of ['voice','text']){
+    const mixed=structuredClone(good);mixed.script[2][key]='متن فارسی';
+    assert.equal(normalizeIdea(mixed,trend,'en').source,'template');
+  }
 });
