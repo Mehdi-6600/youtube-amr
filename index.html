@@ -68,6 +68,7 @@
     const LANGUAGES = ['fa','en','ar','tr','de'];
     const LANGUAGE_NAMES = {fa:'فارسی',en:'English',ar:'العربية',tr:'Türkçe',de:'Deutsch'};
     const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const hasArabic = value => /\p{Script=Arabic}/u.test(String(value || ''));
     const num = value => Number.isFinite(Number(value)) ? Number(value).toLocaleString('fa-IR',{maximumFractionDigits:0}) : '—';
     const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
     const $ = id => document.getElementById(id);
@@ -219,7 +220,7 @@ function englishProductionIdea(idea) {
     ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
   ];
   const topic=String(idea.topic || '').toLowerCase();
-  const story=/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6;
+  const story=idea.reference?6:(/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6);
   const voices=['Can you guess what this is?','Watch this little detail.','Just one small change…','Did you expect that?','Take another look.'];
   const texts=['Take a guess','Watch closely','One small change','Surprised?','Watch again'];
   const title=english(idea.title,'An original visual surprise');
@@ -259,7 +260,9 @@ DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot l
     function prepareNonEnglishIdea(idea,trend,lang='fa') {
       const name=LANGUAGE_NAMES[lang]||LANGUAGE_NAMES.fa;
       const baseScript=Array.isArray(idea.script)?idea.script:[];
-      const refLine=idea.reference?`الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${idea.reference.title}» ${idea.reference.url}\n`:'';
+      const arabic=lang==='fa'||lang==='ar';
+      const refTitle=idea.reference&&(arabic?hasArabic(idea.reference.title):!hasArabic(idea.reference.title))?idea.reference.title:'';
+      const refLine=idea.reference&&refTitle?`الهام‌گرفته از شورت واقعیِ معروف (فقط الهام؛ نسخهٔ اورجینال بساز، کپی نکن): «${refTitle}» ${idea.reference.url}\n`:'';
       const renderLocal=s=>`نقش تو: کارگردان، تدوینگر و سازندهٔ یک ویدیوی اورجینال YouTube Shorts. این دستور را به ویدیوی نهایی قابل انتشار تبدیل کن، نه صرفاً پیشنهاد متنی.
 
 موضوع الهام: #${trend.topic} | عنوان: ${idea.title}
