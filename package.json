@@ -1,0 +1,12 @@
+{
+  "name": "shorts-radar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "dev": "node dev.mjs",
+    "test": "node --test",
+    "check": "node --check api/analyze.js && node --check dev.mjs"
+  }
+}
