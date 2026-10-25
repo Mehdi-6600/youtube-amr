@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="application-version" content="prompt-6">
+  <meta name="application-version" content="prompt-7">
   <meta name="description" content="حداکثر پنج ترند واقعی یوتیوب، هر کدام با مسترپرامپت ساخت ویدیو و کپشن آماده به زبان دلخواه.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -220,7 +220,7 @@ function englishProductionIdea(idea) {
     ['Overhead shot of a green notebook, yellow pencil and empty white cup on a clear desk.', 'Open the notebook in stop motion and reveal a simple pencil drawing of the sun.', 'Shift the cup with a match cut and place an orange bookmark between the pages.', 'Show the sun and bookmark in close-up, then pull back to reveal the tidy desk.', 'Close the notebook and restore every object to its opening position for an exact loop.']
   ];
   const topic=String(idea.topic || '').toLowerCase();
-  const story=idea.reference?6:(/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6);
+  const story=/comedy|comedia/.test(topic)?7:/^fun$/.test(topic)?8:/vlog|روزمره/.test(topic)?9:/funny|humor|طنز|خنده/.test(topic)?0:/food|cook|recipe|غذا|آشپزی|خوراک|cuisine/.test(topic)?1:/clay|craft|diy|art|هنر|خمیر|ساختنی/.test(topic)?2:/tech|gadget|cable|تکنولوژی|فناوری/.test(topic)?3:/sport|fitness|gym|workout|ورزش/.test(topic)?4:/pet|cat|dog|animal|حیوان|گربه/.test(topic)?5:6;
   const voices=['Can you guess what this is?','Watch this little detail.','Just one small change…','Did you expect that?','Take another look.'];
   const texts=['Take a guess','Watch closely','One small change','Surprised?','Watch again'];
   const title=english(idea.title,'An original visual surprise');
@@ -254,7 +254,7 @@ SAFETY: Original assets and licensed/self-made audio only; no copied footage, co
 DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot list/assets if video output is unsupported). Keep publishing caption outside the video.`;
   const script=fitScriptForPrompt(baseScript,renderEn);
   const masterPrompt=ensurePromptLength(renderEn(script),'en');
-  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:6};
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:7};
 }
 
     function prepareNonEnglishIdea(idea,trend,lang='fa') {
@@ -352,6 +352,9 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
     function shouldRefreshTiming(r,now=Date.now()) {
       return needsTimingRefresh(r)&&(!Number.isFinite(r.timingRefreshAttemptAt)||now-r.timingRefreshAttemptAt>=30*60000);
     }
+    function shouldRefreshQuality(r,now=Date.now()) {
+      return validResult(r)&&r.qualityVersion!==1&&(!Number.isFinite(r.qualityRefreshAttemptAt)||now-r.qualityRefreshAttemptAt>=30*60000);
+    }
     function renderUpload(upload) {
       if(!upload)return '<div class="upload unavailable">زمان بارگذاری نیاز به به‌روزرسانی دارد.</div>';
       try {
@@ -384,7 +387,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       $('result-count').textContent=`${num(ideas.length)} ترند، به ترتیب امتیاز`;
       $('result-meta').textContent=`${r.region} · ${LANGUAGE_NAMES[lang]}`;
       $('empty').hidden=!!ideas.length;
-      if(!ideas.length)$('empty').innerHTML=`<div class="empty-radar">${icon('radar')}</div><h2>فعلاً ترند معتبر پیدا نشد.</h2><p>بازار دیگری را تحلیل کن.</p>`;
+      if(!ideas.length)$('empty').innerHTML=`<div class="empty-radar">${icon('radar')}</div><h2>ترند قوی پیدا نشد.</h2><p>برای پرهیز از پرامپت‌های کم‌ارزش، موضوع باید در چند کانال مستقل تازه و پرسرعت باشد. بازار دیگری را تحلیل کن.</p>`;
     }
     function showToast(text='کپی شد ✅'){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2200);}
     function showError(text){$('error').textContent=text;$('error').hidden=false;}
@@ -400,7 +403,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
       try{
         // Separate minute-aware responses from older hourly-only CDN cache entries.
-        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'6'});
+        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'7'});
         const response=await fetch(`/api/analyze?${query}`,{signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
         let result;try{result=await response.json();}catch{throw new Error('پاسخ سرور قابل خواندن نیست؛ دوباره امتحان کن.');}
         if(!response.ok)throw new Error(typeof result.error==='string'?result.error:'تحلیل انجام نشد؛ دوباره امتحان کن.');
@@ -424,12 +427,15 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       $('clear-local').addEventListener('click',()=>{if(!confirm('نتیجه، تنظیمات و رمز ذخیره‌شده پاک شوند؟'))return;try{localStorage.removeItem(SETTINGS_KEY);localStorage.removeItem(RESULT_KEY);localStorage.removeItem('shorts-radar:result:v1');location.reload();}catch{showToast('ذخیره‌سازی در دسترس نیست.');}});
       // Upgrade restored hourly-only results automatically, without losing prompts,
       // asking the user to clear localStorage, or retrying endlessly after a failure.
-      if(shouldRefreshTiming(latest)){
+      if(shouldRefreshQuality(latest)){
+        latest.qualityRefreshAttemptAt=Date.now();storageSet(RESULT_KEY,latest);
+        analyze(null,{refreshTiming:true,settings:{...settings(),region:latest.region,lang:LANGUAGES.includes(latest.lang)?latest.lang:$('lang').value,tz:latest.timezone||latest.golden?.timezone||$('tz').value}});
+      }else if(shouldRefreshTiming(latest)){
         latest.timingRefreshAttemptAt=Date.now();storageSet(RESULT_KEY,latest);
         analyze(null,{refreshTiming:true,settings:{...settings(),region:latest.region,lang:LANGUAGES.includes(latest.lang)?latest.lang:$('lang').value,tz:latest.timezone||latest.golden?.timezone||$('tz').value}});
       }
     }
-    if(typeof window!=='undefined')window.ShortsRadar={esc,getIdeas,captionText,validResult,renderCard,scheduleIdeas,zonedInstant,uploadSchedule,renderUpload,needsTimingRefresh,shouldRefreshTiming};
+    if(typeof window!=='undefined')window.ShortsRadar={esc,getIdeas,captionText,validResult,renderCard,scheduleIdeas,zonedInstant,uploadSchedule,renderUpload,needsTimingRefresh,shouldRefreshTiming,shouldRefreshQuality};
     if(typeof document!=='undefined')init();
   </script>
 </body>
