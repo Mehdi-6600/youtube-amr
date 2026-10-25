@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="application-version" content="prompt-7">
+  <meta name="application-version" content="prompt-8">
   <meta name="description" content="حداکثر پنج ترند واقعی یوتیوب، هر کدام با مسترپرامپت ساخت ویدیو و کپشن آماده به زبان دلخواه.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -254,7 +254,7 @@ SAFETY: Original assets and licensed/self-made audio only; no copied footage, co
 DELIVER: Final MP4 video and an English-only SRT subtitle file (or honest shot list/assets if video output is unsupported). Keep publishing caption outside the video.`;
   const script=fitScriptForPrompt(baseScript,renderEn);
   const masterPrompt=ensurePromptLength(renderEn(script),'en');
-  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:7};
+  return {...idea,lang:'en',title,duration,hook,script,caption,hashtags:limitedHashtags,sound,masterPrompt,promptVersion:8};
 }
 
     function prepareNonEnglishIdea(idea,trend,lang='fa') {
@@ -353,7 +353,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       return needsTimingRefresh(r)&&(!Number.isFinite(r.timingRefreshAttemptAt)||now-r.timingRefreshAttemptAt>=30*60000);
     }
     function shouldRefreshQuality(r,now=Date.now()) {
-      return validResult(r)&&r.qualityVersion!==1&&(!Number.isFinite(r.qualityRefreshAttemptAt)||now-r.qualityRefreshAttemptAt>=30*60000);
+      return validResult(r)&&r.qualityVersion!==2&&(!Number.isFinite(r.qualityRefreshAttemptAt)||now-r.qualityRefreshAttemptAt>=30*60000);
     }
     function renderUpload(upload) {
       if(!upload)return '<div class="upload unavailable">زمان بارگذاری نیاز به به‌روزرسانی دارد.</div>';
@@ -387,7 +387,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       $('result-count').textContent=`${num(ideas.length)} ترند، به ترتیب امتیاز`;
       $('result-meta').textContent=`${r.region} · ${LANGUAGE_NAMES[lang]}`;
       $('empty').hidden=!!ideas.length;
-      if(!ideas.length)$('empty').innerHTML=`<div class="empty-radar">${icon('radar')}</div><h2>ترند قوی پیدا نشد.</h2><p>برای پرهیز از پرامپت‌های کم‌ارزش، موضوع باید در چند کانال مستقل تازه و پرسرعت باشد. بازار دیگری را تحلیل کن.</p>`;
+      if(!ideas.length)$('empty').innerHTML=`<div class="empty-radar">${icon('radar')}</div><h2>ترند قوی پیدا نشد.</h2><p>${esc(r.message||'برای پرهیز از پرامپت‌های کم‌ارزش، موضوع باید در چند کانال مستقل تازه و پرسرعت باشد. بازار دیگری را تحلیل کن.')}</p>`;
     }
     function showToast(text='کپی شد ✅'){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2200);}
     function showError(text){$('error').textContent=text;$('error').hidden=false;}
@@ -403,7 +403,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
       try{
         // Separate minute-aware responses from older hourly-only CDN cache entries.
-        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'7'});
+        const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'8'});
         const response=await fetch(`/api/analyze?${query}`,{signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
         let result;try{result=await response.json();}catch{throw new Error('پاسخ سرور قابل خواندن نیست؛ دوباره امتحان کن.');}
         if(!response.ok)throw new Error(typeof result.error==='string'?result.error:'تحلیل انجام نشد؛ دوباره امتحان کن.');

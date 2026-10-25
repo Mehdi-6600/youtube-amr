@@ -39,15 +39,20 @@ test('trend requires three distinct channels and fresh evidence; duplicate proof
   assert.equal(extractTrends(v.map(x=>({...x,channelId:'one'}))).length,0);
   assert.equal(extractTrends(v.map(x=>({...x,ageH:73}))).length,0);
 });
-test('trend gate drops weak velocity and stale or one-off spikes before writing prompts',()=>{
-  const make=(vph,ageH,n)=>({id:id(n),all:['topic'],hashtags:[],channelId:`channel${n}`,ageH,vph,score:Math.log10(vph+1),title:`example ${n}`,channel:`channel${n}`,views:5000});
-  assert.equal(extractTrends([make(80,12,0),make(70,24,1),make(60,36,2)]).length,0);
-  assert.equal(extractTrends([make(400,12,0),make(300,48,1),make(250,100,2)]).length,1);
-  assert.equal(extractTrends([make(400,12,0),make(300,100,1),make(250,110,2)]).length,0);
+test('strict budget gate drops weak, small, stale and one-off trends before Gemini',()=>{
+  const make=(vph,ageH,n,views=10000)=>({id:id(n),all:['topic'],hashtags:[],channelId:`channel${n}`,ageH,vph,score:Math.log10(vph+1),title:`example ${n}`,channel:`channel${n}`,views});
+  const weak=[100,200,300,400,450].map((vph,n)=>make(vph,12+n,n));
+  const strong=[1000,900,800,700,600].map((vph,n)=>make(vph,[12,24,48,100,110][n],n));
+  const stale=[1000,900,800,700,600].map((vph,n)=>make(vph,n===0?12:100+n,n));
+  assert.equal(extractTrends(weak).length,0);
+  assert.equal(extractTrends(strong).length,1);
+  assert.equal(extractTrends(stale).length,0);
+  assert.equal(extractTrends(strong.map(v=>({...v,views:4000}))).length,0);
+  assert.equal(extractTrends(strong.slice(0,4)).length,0);
 });
 test('trend status below forty percent is still alive; median and evidence are numeric',()=>{
-  const v=filterVideos(Array.from({length:10},(_,n)=>video(n)),NOW).map((x,n)=>({...x,ageH:n<3?10:100,vph:(n+1)*100}));
-  const [t]=extractTrends(v);assert.equal(t.status,'هنوز زنده');assert.equal(t.medianVph,550);assert.equal(t.recentCount,3);
+  const v=filterVideos(Array.from({length:10},(_,n)=>video(n)),NOW).map((x,n)=>({...x,ageH:n<3?10:100,vph:(n+1)*1000}));
+  const [t]=extractTrends(v);assert.equal(t.status,'هنوز زنده');assert.equal(t.medianVph,5500);assert.equal(t.recentCount,3);
   assert.equal(extractTrends(v.map((x,n)=>({...x,ageH:n<4?10:100})))[0].status,'در اوج');
 });
 test('golden time is timezone aware, circular smoothing and second hour gap',()=>{
@@ -126,20 +131,46 @@ test('YouTube HTTP and transport failures return safe errors, not upstream secre
   let r=await call();assert.equal(r.status,502);assert.equal(r.body.code,'YOUTUBE_API_ERROR');assert.ok(!JSON.stringify(r).includes('secret-key'));
   mock.mock.mockImplementation(async()=>{throw new Error('private-details');});r=await call();assert.equal(r.body.code,'CONNECTION_ERROR');
 });
-test('AI failure falls back without failing analysis',async t=>{
-  setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);youtubeMock(t);
-  const r=await call();assert.equal(r.status,200);assert.equal(r.body.ideaMode,'template');assert.equal(r.body.ideas[0].script.length,5);
+test('quality gate skips Gemini entirely for weak trending videos',async t=>{
+  setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);
+  let aiCalls=0;
+  const vids=Array.from({length:12},(_,n)=>{
+    const v=video(n);v.statistics.viewCount='1000';
+    v.snippet.publishedAt=new Date(Date.now()-(n+1)*3600000).toISOString();return v;
+  });
+  t.mock.method(globalThis,'fetch',async url=>{
+    const u=new URL(url);
+    if(u.hostname==='generativelanguage.googleapis.com'){aiCalls++;return makeResponse({});}
+    if(u.pathname.endsWith('/search'))return makeResponse({items:vids.map(v=>({id:{videoId:v.id}}))});
+    return makeResponse({items:vids});
+  });
+  const r=await call();assert.equal(aiCalls,0);assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);assert.match(r.body.message,/میانهٔ ۵۰۰۰ بازدید/);
 });
-test('AI JSON mode requested, model default, invalid JSON gracefully falls back',async t=>{
+test('AI failure consumes no fallback prompt after the failed request',async t=>{
+  setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);youtubeMock(t);
+  const r=await call();assert.equal(r.status,200);assert.equal(r.body.ideaMode,'ai_rejected');assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);
+});
+test('invalid Gemini JSON is rejected without generating a local fallback',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'GEMINI_MODEL',undefined);setEnv(t,'APP_PASSWORD',undefined);
-  youtubeMock(t,12,(url,options)=>{assert.match(url,/gemini-2\.0-flash/);const body=JSON.parse(options.body);assert.equal(body.generationConfig.responseMimeType,'application/json');assert.match(body.contents[0].parts[0].text,/ایده باید ارزش مستقل برای بیننده داشته باشد/);return makeResponse({candidates:[{content:{parts:[{text:'not json'}]}}]});});
-  assert.equal((await call()).body.ideaMode,'template');
+  youtubeMock(t,12,(url,options)=>{assert.match(url,/gemini-2\.0-flash/);const body=JSON.parse(options.body);assert.equal(body.generationConfig.responseMimeType,'application/json');assert.match(body.contents[0].parts[0].text,/ارزش واقعی برای بیننده/);assert.equal(body.generationConfig.maxOutputTokens,2200);return makeResponse({candidates:[{content:{parts:[{text:'not json'}]}}]});});
+  const r=await call();assert.equal(r.body.ideaMode,'ai_rejected');assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);assert.match(r.body.message,/هدر نرفتن سهمیه/);
+});
+test('Gemini idea below the quality score is omitted without template substitution',async t=>{
+  setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);
+  let aiCalls=0;
+  youtubeMock(t,12,(_url,options)=>{
+    aiCalls++;
+    const prompt=JSON.parse(options.body).contents[0].parts[0].text;
+    const trends=JSON.parse(prompt.split('داده: ')[1]);
+    return makeResponse({candidates:[{content:{parts:[{text:JSON.stringify({ideas:trends.map(t=>({...fallbackIdea(t),qualityScore:7,audienceValue:'بیننده یک ترفند تصویری کاربردی و تازه برای ساخت ویدیو می‌بیند.',title:'یک تغییر دیدنی در آشپزی'}))})}]}}]});
+  });
+  const r=await call();assert.equal(aiCalls,1);assert.equal(r.body.ideaMode,'ai_rejected');assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);assert.match(r.body.message,/هیچ پرامپت جایگزینی/);
 });
 test('zero qualifying topics returns golden time but never manufactures ideas',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);setEnv(t,'GEMINI_API_KEY',undefined);
   const vids=Array.from({length:12},(_,n)=>{const v=video(n);v.snippet={...v.snippet,tags:[],title:'بدون هشتگ',description:'',publishedAt:new Date(Date.now()-(n+1)*3600000).toISOString()};return v;});
   t.mock.method(globalThis,'fetch',async url=>{const u=new URL(url);return makeResponse({items:u.pathname.endsWith('/search')?vids.map(v=>({id:{videoId:v.id}})):u.searchParams.has('chart')?vids.map(v=>({id:v.id})):vids});});
-  const r=await call();assert.equal(r.status,200);assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);assert.ok(r.body.golden);assert.match(r.body.message,/ایده‌ای ساخته نشد/);
+  const r=await call();assert.equal(r.status,200);assert.deepEqual(r.body.trends,[]);assert.deepEqual(r.body.ideas,[]);assert.ok(r.body.golden);assert.match(r.body.message,/پرامپتی ساخته نشد/);
 });
 test('valid Gemini output accepted but metrics, sound and hashtag limits are server controlled',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);
@@ -147,12 +178,12 @@ test('valid Gemini output accepted but metrics, sound and hashtag limits are ser
     const prompt=JSON.parse(options.body).contents[0].parts[0].text;
     assert.match(prompt,/نمونه‌عنوان‌های واقعی/);assert.match(prompt,/#آشپزی/);
     const trends=JSON.parse(prompt.split('داده: ')[1]);
-    return makeResponse({candidates:[{content:{parts:[{text:JSON.stringify({ideas:trends.map(t=>({...fallbackIdea(t),title:'تبدیل یک قطعهٔ خمیر به عروسک',why:'99999999 guaranteed views',sound:'copyright song',hashtags:['#one','#two','#three','#four','#five','#six']}))})}]}}]});
+    return makeResponse({candidates:[{content:{parts:[{text:JSON.stringify({ideas:trends.map(t=>({...fallbackIdea(t),qualityScore:9,audienceValue:'بیننده یک ترفند تصویری قابل اجرا برای تبدیل خوراکی به شکل تازه می‌بیند.',title:'تبدیل یک قطعهٔ خمیر به عروسک',why:'99999999 guaranteed views',sound:'copyright song',hashtags:['#one','#two','#three','#four','#five','#six']}))})}]}}]});
   });
   const r=await call();assert.equal(r.body.ideaMode,'gemini');assert.equal(r.body.ideas[0].source,'gemini');assert.ok(!r.body.ideas[0].why.includes('99999999'));assert.ok(!r.body.ideas[0].sound.includes('copyright song'));assert.equal(r.body.ideas[0].hashtags.length,5);assert.equal(r.body.ideas[0].hashtags[0],'#shorts');
 });
 test('trend cap is five with distinct evidence sets',()=>{
-  const v=Array.from({length:8},(_,group)=>Array.from({length:3},(_,n)=>({id:id(group*3+n),all:[`topic_${group}`],hashtags:[],channelId:`channel${n}`,ageH:10,vph:100,score:10-group/10,title:'title',channel:'channel',views:1000}))).flat();
+  const v=Array.from({length:8},(_,group)=>Array.from({length:5},(_,n)=>({id:id(group*5+n),all:[`topic_${group}`],hashtags:[],channelId:`channel${n}`,ageH:10,vph:1000,score:10-group/10,title:'title',channel:'channel',views:10000}))).flat();
   const trends=extractTrends(v);assert.equal(trends.length,5);assert.equal(trends[0].topic,'topic_0');assert.equal(trends.at(-1).topic,'topic_4');
 });
 
@@ -184,7 +215,7 @@ test('wrong-language AI output falls back in the requested language',()=>{
 });
 test('API emits v2 localized output and max five ideas with master prompts',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);setEnv(t,'GEMINI_API_KEY',undefined);youtubeMock(t);
-  const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.qualityVersion,1);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
+  const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.qualityVersion,2);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
   for(const lang of LANGUAGES)assert.equal(r.body.localizedIdeas[lang].length,r.body.trends.length);
 });
 
