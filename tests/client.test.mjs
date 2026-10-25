@@ -8,7 +8,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const context=vm.createContext({Intl,Date,console});new vm.Script(script).runInContext(context);
 const run=expr=>vm.runInContext(expr,context);
 const trend={topic:'funny',hashtags:['#comedy'],videoCount:3,channelCount:3,recentCount:1,medianVph:100,score:10,evidence:[]};
-const fixture={version:2,qualityVersion:2,region:'US',generatedAt:'2026-10-23T10:00:00Z',trends:[trend],localizedIdeas:localizeIdeas([trend])};
+const fixture={version:2,qualityVersion:2,region:'US',lang:'fa',timezone:'Asia/Tehran',generatedAt:'2026-10-23T10:00:00Z',trends:[trend],localizedIdeas:localizeIdeas([trend])};
 test('client script parses without a bundler',()=>{assert.equal(typeof run('getIdeas'),'function');});
 test('XSS escaping handles HTML and textarea boundaries',()=>{
   context.input='</textarea><img src=x onerror="alert(1)">&\'test';
@@ -38,7 +38,7 @@ test('card has exactly two copyable boxes and safe evidence links',()=>{
   assert.ok(!rendered.includes('href="javascript:'));assert.ok(!rendered.includes('<img'));assert.ok(!rendered.includes('<script>'));assert.ok(rendered.includes('&lt;script&gt;'));assert.ok(rendered.includes('lang="en"'));assert.ok(rendered.includes('dir="ltr"'));
 });
 test('main UI has no legacy chart or long policy blocks',()=>{
-  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'8'"));
+  assert.ok(!html.includes('id="golden"'));assert.ok(!html.includes('id="stats"'));assert.ok(!html.includes('id="rules"'));assert.ok(html.includes('زبان ویدیو و کپشن'));assert.ok(html.includes("v:'8'"));assert.ok(html.includes('id="refresh-analysis"'));assert.ok(html.includes("query.set('fresh'"));
 });
 
 const golden={timezone:'Asia/Tehran',bestHour:18,bestMinute:37,secondHour:10,secondMinute:12,topDays:[5,6,0],histogram:Array(24).fill(1)};
@@ -112,6 +112,15 @@ test('old saved prompt results refresh once for the stricter quality rules and t
   assert.equal(run('shouldRefreshQuality(r,now)'),true);
   context.r.qualityRefreshAttemptAt=now;assert.equal(run('shouldRefreshQuality(r,now+1000)'),false);assert.equal(run('shouldRefreshQuality(r,now+30*60000)'),true);
   context.r={...fixture,qualityVersion:2};assert.equal(run('shouldRefreshQuality(r,now)'),false);
+});
+test('fresh identical analyses are reused for 30 minutes unless explicitly forced',()=>{
+  const now=Date.now();context.now=now;context.current={region:'US',lang:'fa',tz:'Asia/Tehran'};
+  context.r={...fixture,generatedAt:new Date(now-5*60000).toISOString()};
+  assert.equal(run('canReuseAnalysis(r,current,now)'),true);
+  assert.equal(run('canReuseAnalysis(r,current,now+30*60000)'),false);
+  assert.equal(run('canReuseAnalysis(r,{...current,region:"GB"},now)'),false);
+  assert.equal(run('canReuseAnalysis(r,{...current,tz:"Europe/Amsterdam"},now)'),false);
+  assert.equal(run('canReuseAnalysis({...r,qualityVersion:1},current,now)'),false);
 });
 test('minute-level estimates stay minute-level and use a clearly named upload heading',()=>{
   context.r={...fixture,golden};const schedule=run('uploadSchedule(r)');assert.equal(schedule.precision,'minute');
