@@ -39,9 +39,15 @@ test('trend requires three distinct channels and fresh evidence; duplicate proof
   assert.equal(extractTrends(v.map(x=>({...x,channelId:'one'}))).length,0);
   assert.equal(extractTrends(v.map(x=>({...x,ageH:73}))).length,0);
 });
+test('trend gate drops weak velocity and stale or one-off spikes before writing prompts',()=>{
+  const make=(vph,ageH,n)=>({id:id(n),all:['topic'],hashtags:[],channelId:`channel${n}`,ageH,vph,score:Math.log10(vph+1),title:`example ${n}`,channel:`channel${n}`,views:5000});
+  assert.equal(extractTrends([make(80,12,0),make(70,24,1),make(60,36,2)]).length,0);
+  assert.equal(extractTrends([make(400,12,0),make(300,48,1),make(250,100,2)]).length,1);
+  assert.equal(extractTrends([make(400,12,0),make(300,100,1),make(250,110,2)]).length,0);
+});
 test('trend status below forty percent is still alive; median and evidence are numeric',()=>{
-  const v=filterVideos(Array.from({length:10},(_,n)=>video(n)),NOW).map((x,n)=>({...x,ageH:n<3?10:100,vph:n+1}));
-  const [t]=extractTrends(v);assert.equal(t.status,'هنوز زنده');assert.equal(t.medianVph,6);assert.equal(t.recentCount,3);
+  const v=filterVideos(Array.from({length:10},(_,n)=>video(n)),NOW).map((x,n)=>({...x,ageH:n<3?10:100,vph:(n+1)*100}));
+  const [t]=extractTrends(v);assert.equal(t.status,'هنوز زنده');assert.equal(t.medianVph,550);assert.equal(t.recentCount,3);
   assert.equal(extractTrends(v.map((x,n)=>({...x,ageH:n<4?10:100})))[0].status,'در اوج');
 });
 test('golden time is timezone aware, circular smoothing and second hour gap',()=>{
@@ -126,7 +132,7 @@ test('AI failure falls back without failing analysis',async t=>{
 });
 test('AI JSON mode requested, model default, invalid JSON gracefully falls back',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'GEMINI_MODEL',undefined);setEnv(t,'APP_PASSWORD',undefined);
-  youtubeMock(t,12,(url,options)=>{assert.match(url,/gemini-2\.0-flash/);const body=JSON.parse(options.body);assert.equal(body.generationConfig.responseMimeType,'application/json');assert.match(body.contents[0].parts[0].text,/هیچ ادعای خبری یا شایعه ننویس/);return makeResponse({candidates:[{content:{parts:[{text:'not json'}]}}]});});
+  youtubeMock(t,12,(url,options)=>{assert.match(url,/gemini-2\.0-flash/);const body=JSON.parse(options.body);assert.equal(body.generationConfig.responseMimeType,'application/json');assert.match(body.contents[0].parts[0].text,/ایده باید ارزش مستقل برای بیننده داشته باشد/);return makeResponse({candidates:[{content:{parts:[{text:'not json'}]}}]});});
   assert.equal((await call()).body.ideaMode,'template');
 });
 test('zero qualifying topics returns golden time but never manufactures ideas',async t=>{
@@ -139,8 +145,9 @@ test('valid Gemini output accepted but metrics, sound and hashtag limits are ser
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'GEMINI_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);
   youtubeMock(t,12,(_url,options)=>{
     const prompt=JSON.parse(options.body).contents[0].parts[0].text;
+    assert.match(prompt,/نمونه‌عنوان‌های واقعی/);assert.match(prompt,/#آشپزی/);
     const trends=JSON.parse(prompt.split('داده: ')[1]);
-    return makeResponse({candidates:[{content:{parts:[{text:JSON.stringify({ideas:trends.map(t=>({...fallbackIdea(t),why:'99999999 guaranteed views',sound:'copyright song',hashtags:['#one','#two','#three','#four','#five','#six']}))})}]}}]});
+    return makeResponse({candidates:[{content:{parts:[{text:JSON.stringify({ideas:trends.map(t=>({...fallbackIdea(t),title:'تبدیل یک قطعهٔ خمیر به عروسک',why:'99999999 guaranteed views',sound:'copyright song',hashtags:['#one','#two','#three','#four','#five','#six']}))})}]}}]});
   });
   const r=await call();assert.equal(r.body.ideaMode,'gemini');assert.equal(r.body.ideas[0].source,'gemini');assert.ok(!r.body.ideas[0].why.includes('99999999'));assert.ok(!r.body.ideas[0].sound.includes('copyright song'));assert.equal(r.body.ideas[0].hashtags.length,5);assert.equal(r.body.ideas[0].hashtags[0],'#shorts');
 });
@@ -161,12 +168,14 @@ test('all five languages have native captions, dialogue and complete master prom
     if(['en','tr','de'].includes(lang))assert.ok(!/\p{Script=Arabic}/u.test(idea.caption));
   }
 });
-test('neighbouring funny/comedy/fun trends produce different executable stories',()=>{
+test('neighbouring trends and referenced fallback stories stay topic-specific',()=>{
   const base={hashtags:[],videoCount:3,channelCount:3,recentCount:1,medianVph:100};
   const prompts=['funny','comedy','fun','minivlog'].map(topic=>buildMasterPrompt(fallbackIdea({...base,topic},'en'),{...base,topic},'en'));
   assert.equal(new Set(prompts).size,4);
   const scenes=['funny','comedy','fun','minivlog'].map(topic=>fallbackIdea({...base,topic},'en').script[0].visual);
   assert.equal(new Set(scenes).size,4);
+  const referenced=fallbackIdea({...base,topic:'food',evidence:[{title:'A strawberry surprise',url:'https://www.youtube.com/shorts/abcdefghijk'}]},'en');
+  assert.ok(referenced.script.some(beat=>beat.visual.includes('توت‌فرنگی')));assert.doesNotMatch(referenced.script[0].visual,/سوژهٔ اصلی/);
 });
 test('wrong-language AI output falls back in the requested language',()=>{
   const t={topic:'funny',hashtags:[],videoCount:3,channelCount:3,recentCount:1,medianVph:100};
@@ -175,7 +184,7 @@ test('wrong-language AI output falls back in the requested language',()=>{
 });
 test('API emits v2 localized output and max five ideas with master prompts',async t=>{
   setEnv(t,'YOUTUBE_API_KEY','test');setEnv(t,'APP_PASSWORD',undefined);setEnv(t,'GEMINI_API_KEY',undefined);youtubeMock(t);
-  const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
+  const r=await call('/api/analyze?lang=en');assert.equal(r.status,200);assert.equal(r.body.version,2);assert.equal(r.body.qualityVersion,1);assert.equal(r.body.ideas[0].lang,'en');assert.ok(r.body.ideas[0].masterPrompt);assert.match(r.body.ideas[0].caption,/What would you change/);
   for(const lang of LANGUAGES)assert.equal(r.body.localizedIdeas[lang].length,r.body.trends.length);
 });
 
