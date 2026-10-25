@@ -51,6 +51,7 @@
       <p id="storage-note" class="storage-note" role="status" hidden>ذخیره‌سازی مرورگر در دسترس نیست.</p>
       <div id="error" class="error" role="alert" hidden></div>
       <p id="status" class="status" role="status" hidden></p>
+      <button id="refresh-analysis" class="copy timing-refresh" type="button" hidden>تحلیل تازه · مصرف سهمیه</button>
       <button id="refresh-timing" class="copy timing-refresh" type="button" hidden>به‌روزرسانی زمان بارگذاری</button>
       <section id="output" aria-label="ترندها و پرامپت‌های آماده" aria-busy="false">
         <div id="result-head" class="result-head" hidden><h2 id="result-count"></h2><span id="result-meta"></span></div>
@@ -355,6 +356,11 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
     function shouldRefreshQuality(r,now=Date.now()) {
       return validResult(r)&&r.qualityVersion!==2&&(!Number.isFinite(r.qualityRefreshAttemptAt)||now-r.qualityRefreshAttemptAt>=30*60000);
     }
+    function canReuseAnalysis(r,current,now=Date.now()) {
+      if(!validResult(r)||r.qualityVersion!==2||r.region!==current.region||r.lang!==current.lang||r.timezone!==current.tz)return false;
+      const age=now-Date.parse(r.generatedAt);
+      return age>=0&&age<30*60000;
+    }
     function renderUpload(upload) {
       if(!upload)return '<div class="upload unavailable">زمان بارگذاری نیاز به به‌روزرسانی دارد.</div>';
       try {
@@ -384,6 +390,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       $('refresh-timing').hidden=!needsTimingRefresh(r);
       $('results').innerHTML=ideas.map((idea,i)=>renderCard(idea,r.trends[i],i,lang,schedule?{at:schedule.times[i],timezone:schedule.timezone,precision:schedule.precision}:null)).join('');
       $('result-head').hidden=!ideas.length;
+      $('refresh-analysis').hidden=false;
       $('result-count').textContent=`${num(ideas.length)} ترند، به ترتیب امتیاز`;
       $('result-meta').textContent=`${r.region} · ${LANGUAGE_NAMES[lang]}`;
       $('empty').hidden=!!ideas.length;
@@ -399,18 +406,24 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       event?.preventDefault();if(busy)return;
       const current=options.settings||settings();
       try{new Intl.DateTimeFormat('en',{timeZone:current.tz}).format();}catch{showError('منطقهٔ زمانی معتبر نیست؛ Asia/Tehran را امتحان کن.');return;}
-      saveSettings();busy=true;$('analyze').disabled=true;$('refresh-timing').disabled=true;$('button-label').textContent='در حال پیدا کردن ترندها…';$('analyze').insertAdjacentHTML('afterbegin','<span class="spinner" id="spinner" aria-hidden="true"></span>');$('output').setAttribute('aria-busy','true');$('error').hidden=true;$('status').textContent=options.refreshTiming?'در حال به‌روزرسانی زمان بارگذاری شورت‌ها…':'در حال بررسی داده‌های واقعی یوتیوب…';$('status').hidden=false;
+      saveSettings();
+      if(!options.force&&!options.refreshTiming&&canReuseAnalysis(latest,current)){
+        renderResult(latest);showToast('نتیجهٔ تازهٔ همین تنظیمات استفاده شد؛ برای درخواست جدید «تحلیل تازه» را بزن.');
+        $('output').scrollIntoView({behavior:'smooth',block:'start'});return;
+      }
+      busy=true;$('analyze').disabled=true;$('refresh-analysis').disabled=true;$('refresh-timing').disabled=true;$('button-label').textContent='در حال بررسی ترندها…';$('analyze').insertAdjacentHTML('afterbegin','<span class="spinner" id="spinner" aria-hidden="true"></span>');$('output').setAttribute('aria-busy','true');$('error').hidden=true;$('status').textContent=options.refreshTiming?'در حال به‌روزرسانی زمان بارگذاری شورت‌ها…':'در حال بررسی داده‌های واقعی یوتیوب…';$('status').hidden=false;
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),32000);
       try{
         // Separate minute-aware responses from older hourly-only CDN cache entries.
         const query=new URLSearchParams({region:current.region,lang:current.lang,tz:current.tz,v:'8'});
-        const response=await fetch(`/api/analyze?${query}`,{signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
+        if(options.force)query.set('fresh',String(Date.now()));
+        const response=await fetch(`/api/analyze?${query}`, {signal:controller.signal,headers:current.pass?{'X-App-Password':current.pass}:{}});
         let result;try{result=await response.json();}catch{throw new Error('پاسخ سرور قابل خواندن نیست؛ دوباره امتحان کن.');}
         if(!response.ok)throw new Error(typeof result.error==='string'?result.error:'تحلیل انجام نشد؛ دوباره امتحان کن.');
         if(needsTimingRefresh(result))result.timingRefreshAttemptAt=Date.now();
         renderResult(result);storageSet(RESULT_KEY,result);if(!options.refreshTiming)$('output').scrollIntoView({behavior:'smooth',block:'start'});
       }catch(error){showError(error.name==='AbortError'?'زمان اتصال تمام شد؛ دوباره امتحان کن.':error instanceof TypeError?'خطای اتصال؛ اینترنت را بررسی کن.':error.message||'تحلیل انجام نشد؛ دوباره امتحان کن.');}
-      finally{clearTimeout(timer);busy=false;$('analyze').disabled=false;$('refresh-timing').disabled=false;$('button-label').textContent='تحلیل کن';$('spinner')?.remove();$('status').hidden=true;$('output').setAttribute('aria-busy','false');}
+      finally{clearTimeout(timer);busy=false;$('analyze').disabled=false;$('refresh-analysis').disabled=false;$('refresh-timing').disabled=false;$('button-label').textContent='تحلیل کن';$('spinner')?.remove();$('status').hidden=true;$('output').setAttribute('aria-busy','false');}
     }
     function init(){
       const saved=storageGet(SETTINGS_KEY);
@@ -418,7 +431,8 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
       else{try{$('tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||'Asia/Tehran';}catch{}}
       if(!$('tz').value)$('tz').value='Asia/Tehran';if(!$('region').value)$('region').value='US';if(!LANGUAGES.includes($('lang').value))$('lang').value='fa';
       const result=storageGet(RESULT_KEY);if(validResult(result))renderResult(result);
-      $('refresh-timing').addEventListener('click',event=>analyze(event,{refreshTiming:true}));
+      $('refresh-timing').addEventListener('click',event=>analyze(event,{refreshTiming:true,force:true}));
+      $('refresh-analysis').addEventListener('click',event=>analyze(event,{force:true}));
       $('settings').addEventListener('submit',analyze);$('settings').addEventListener('input',saveSettings);$('settings').addEventListener('change',saveSettings);
       // Change the whole localized video package, not only the selector label.
       // No new YouTube requests and no stale caption in the previous language.
@@ -435,7 +449,7 @@ ${s.map((b,i)=>`${i+1}. ${b.t} — تصویر: ${b.visual} | گویندگی: «$
         analyze(null,{refreshTiming:true,settings:{...settings(),region:latest.region,lang:LANGUAGES.includes(latest.lang)?latest.lang:$('lang').value,tz:latest.timezone||latest.golden?.timezone||$('tz').value}});
       }
     }
-    if(typeof window!=='undefined')window.ShortsRadar={esc,getIdeas,captionText,validResult,renderCard,scheduleIdeas,zonedInstant,uploadSchedule,renderUpload,needsTimingRefresh,shouldRefreshTiming,shouldRefreshQuality};
+    if(typeof window!=='undefined')window.ShortsRadar={esc,getIdeas,captionText,validResult,renderCard,scheduleIdeas,zonedInstant,uploadSchedule,renderUpload,needsTimingRefresh,shouldRefreshTiming,shouldRefreshQuality,canReuseAnalysis};
     if(typeof document!=='undefined')init();
   </script>
 </body>
